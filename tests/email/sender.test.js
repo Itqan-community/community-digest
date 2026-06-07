@@ -6,9 +6,9 @@ vi.mock('resend', () => {
   const Resend = vi.fn(function () {
     this.emails = { send: mockSend };
   });
-  return { default: Resend, mockSend };
+  return { Resend, mockSend };
 });
-import Resend, { mockSend } from 'resend';
+import { Resend, mockSend } from 'resend';
 
 describe('sendDigestEmail', () => {
   beforeEach(() => {

@@ -12,9 +12,9 @@
                 extend: {
                     colors: {
                         itqan: {
-                            primary: '#7ba38f', // من الصورة image_f5911b.png
-                            dark: '#3d6052',    // من الصورة image_f5911b.png
-                            light: '#f0f4f2',   // لون خلفية متناسق
+                            primary: '#7ba38f',
+                            dark: '#3d6052',
+                            light: '#f0f4f2',
                             text: '#1f2937'
                         }
                     }
@@ -23,16 +23,16 @@
         }
     </script>
     <style>
-        body { 
-            font-family: 'Rubik', sans-serif; 
-            background-color: #fcfcfc; 
+        body {
+            font-family: 'Rubik', sans-serif;
+            background-color: #fcfcfc;
             color: #1f2937;
             line-height: 1.7;
         }
-        .email-container { 
-            max-width: 600px; 
-            margin: 0 auto; 
-            background: #ffffff; 
+        .email-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: #ffffff;
         }
         .btn-itqan {
             background-color: #7ba38f;
@@ -43,98 +43,75 @@
 <body class="py-10 px-4">
 
     <div class="email-container rounded-[2.5rem] overflow-hidden shadow-sm border border-gray-100">
-        
+
         <!-- Header Section -->
         <div class="bg-itqan-dark p-12 text-white text-right relative overflow-hidden">
             <div class="relative z-10">
                 <h1 class="text-2xl font-bold tracking-tight mb-2 flex items-center gap-2">
                     إتقان <span class="text-itqan-primary">·</span> Itqan
                 </h1>
-                <!-- FIELD: window.label -->
-                <p class="text-itqan-light/70 text-sm font-light">ملخص الأسبوع: 2 يونيو 2026</p>
+                <p class="text-itqan-light/70 text-sm font-light">ملخص الأسبوع: {{default window_label 'ملخص الأسبوع'}}</p>
             </div>
-            <!-- Decorative circle similar to image style -->
             <div class="absolute -left-10 -top-10 w-40 h-40 bg-itqan-primary/20 rounded-full"></div>
         </div>
 
         <div class="p-10">
-            
+
             <!-- 1. الموضوع الرئيسي (Featured Topic) -->
-            <!-- FIELD: featuredTopic.title, featuredTopic.excerpt, featuredTopic.authorNames, featuredTopic.url -->
             <div class="mb-16">
                 <span class="inline-block bg-itqan-light text-itqan-dark text-[10px] font-bold px-3 py-1 rounded-full mb-4 uppercase tracking-widest border border-itqan-primary/20">النقاش الأكثر تفاعلاً</span>
-                <h2 class="text-3xl font-bold text-itqan-dark mb-6 leading-tight">
-                    كيف نتعامل مع الأخطاء التحريفية المنسية في GitHub؟
-                </h2>
+                <h2 class="text-3xl font-bold text-itqan-dark mb-6 leading-tight">{{featured_topic.title}}</h2>
                 <div class="bg-itqan-light/50 border-r-4 border-itqan-primary p-6 rounded-2xl mb-8">
-                    <p class="text-gray-700 text-md leading-relaxed">
-                        أثارت <strong>رقية بورية</strong> نقاشاً جوهرياً حول تأخر معالجة الأخطاء التي تمس سلامة النص القرآني في المشاريع المفتوحة. النقاش شهد تفاعلاً كبيراً، حيث اقترح <strong>علي ملص</strong> حلولاً مؤسسية لضمان الاستمرارية، بينما دعا <strong>هادي الأحمد</strong> لبناء "إتيكيت" خاص بالمشاريع القرآنية يضمن سرعة الاستجابة.
-                    </p>
+                    <p class="text-gray-700 text-md leading-relaxed">{{featured_topic.excerpt}}</p>
                 </div>
-                <a href="https://community.itqan.dev/d/466" class="inline-block btn-itqan text-white text-sm font-bold px-12 py-4 rounded-2xl hover:opacity-90 transition-all text-center w-full sm:w-auto">
+                <a href="{{featured_topic.url}}" class="inline-block btn-itqan text-white text-sm font-bold px-12 py-4 rounded-2xl hover:opacity-90 transition-all text-center w-full sm:w-auto">
                     عد إلى المناقشة الآن
                 </a>
             </div>
 
             <!-- 2. محاور الأسبوع (Themes) -->
-            <!-- FIELD: themes[] — title, description, url, discussionId -->
             <div class="mb-16">
                 <h3 class="text-[11px] font-bold text-itqan-dark/40 uppercase tracking-[0.2em] mb-8 border-b border-gray-100 pb-3">محاور الأسبوع</h3>
                 <div class="space-y-10">
+                    {{#each themes}}
                     <div>
-                        <a href="https://community.itqan.dev/d/467" class="text-xl font-bold text-itqan-dark hover:text-itqan-primary transition-colors block mb-2 underline decoration-itqan-light underline-offset-8">
-                            أداة "مزمن" لمزامنة الآيات بأسهم لوحة المفاتيح
+                        <a href="{{this.url}}" class="text-xl font-bold text-itqan-dark hover:text-itqan-primary transition-colors block mb-2 underline decoration-itqan-light underline-offset-8">
+                            {{this.title}}
                         </a>
-                        <p class="text-sm text-gray-500 max-w-md">أداة جديدة من تطوير ناصر طاهري تهدف لتسهيل المزامنة اليدوية للصوت مع النص القرآني بكفاءة عالية.</p>
+                        <p class="text-sm text-gray-500 max-w-md">{{this.description}}</p>
                     </div>
-                    <div>
-                        <a href="https://community.itqan.dev/d/463" class="text-xl font-bold text-itqan-dark hover:text-itqan-primary transition-colors block mb-2 underline decoration-itqan-light underline-offset-8">
-                            تحسين تجربة المستخدم للتنبيهات في تطبيق زاد المؤمن
-                        </a>
-                        <p class="text-sm text-gray-500 max-w-md">نقاش حول ذكاء التنبيهات وكيفية تكييفها مع أنماط استخدام المستخدمين الفعلية دون إزعاج.</p>
-                    </div>
+                    {{/each}}
                 </div>
             </div>
 
             <!-- 3. الأسئلة المفتوحة (Open Questions) -->
-            <!-- FIELD: openQuestions[] — question, url, discussionId -->
             <div class="bg-itqan-dark text-itqan-light rounded-[2rem] p-10 mb-16 shadow-lg shadow-itqan-dark/10">
                 <h3 class="text-itqan-primary font-bold text-sm mb-8 flex items-center gap-3">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                     أسئلة للنقاش
                 </h3>
                 <ul class="space-y-6">
+                    {{#each open_questions}}
                     <li class="text-md font-medium leading-relaxed border-b border-itqan-primary/20 pb-4">
-                        • كيف يمكن ضمان حل فوري للأخطاء التحريفية دون الاعتماد على توفر صاحب المشروع؟
+                        • {{this.question}}
                     </li>
-                    <li class="text-md font-medium leading-relaxed border-b border-itqan-primary/20 pb-4">
-                        • هل إضافة "الآية 0" كصف مستقل في أدوات التزمين يحل مشكلة تداخل التوقيت؟
-                    </li>
-                    <li class="text-md font-medium leading-relaxed">
-                        • هل من الأفضل تثبيت موعد تنبيهات سنن الجمعة أم تركها كاملة لاختيار المستخدم؟
-                    </li>
+                    {{/each}}
                 </ul>
             </div>
 
             <!-- 4. أبرز المساهمين (Contributors) -->
-            <!-- FIELD: contributors[] — name, contribution, discussionIds -->
             <div>
                 <h3 class="text-[11px] font-bold text-itqan-dark/40 uppercase tracking-[0.2em] mb-8 border-b border-gray-100 pb-3">أبرز المساهمين</h3>
                 <div class="grid grid-cols-1 gap-4">
+                    {{#each contributors}}
                     <div class="flex items-center gap-4 p-5 rounded-3xl bg-itqan-light/30 border border-transparent hover:border-itqan-primary/20 hover:bg-itqan-light/50 transition-all">
-                        <div class="w-12 h-12 rounded-2xl bg-itqan-primary flex items-center justify-center text-white font-bold text-lg">NT</div>
+                        <div class="w-12 h-12 rounded-2xl bg-itqan-primary flex items-center justify-center text-white font-bold text-lg">{{initials this.name}}</div>
                         <div>
-                            <h4 class="text-sm font-bold text-itqan-dark">NacerTahri</h4>
-                            <p class="text-[11px] text-itqan-dark/60 mt-0.5">قدم أداة المزامنة المطورة "M⏱zameen" (#467)</p>
+                            <h4 class="text-sm font-bold text-itqan-dark">{{this.name}}</h4>
+                            <p class="text-[11px] text-itqan-dark/60 mt-0.5">{{this.contribution}}</p>
                         </div>
                     </div>
-                    <div class="flex items-center gap-4 p-5 rounded-3xl bg-itqan-light/30 border border-transparent hover:border-itqan-primary/20 hover:bg-itqan-light/50 transition-all">
-                        <div class="w-12 h-12 rounded-2xl bg-itqan-dark flex items-center justify-center text-white font-bold text-lg">H</div>
-                        <div>
-                            <h4 class="text-sm font-bold text-itqan-dark">هادي الأحمد</h4>
-                            <p class="text-[11px] text-itqan-dark/60 mt-0.5">ساهم باقتراحات تقنية لتطوير أدوات المزامنة والتنبيهات (#467, #463)</p>
-                        </div>
-                    </div>
+                    {{/each}}
                 </div>
             </div>
         </div>

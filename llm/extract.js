@@ -85,6 +85,11 @@ async function loadProvider() {
 }
 
 function parseResponse(text) {
+  // Providers (gemini, openai) now parse JSON internally and return objects.
+  // If we get an object back, pass it through; otherwise treat as string.
+  if (typeof text !== 'string') {
+    return text;
+  }
   const cleaned = text.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim();
   try {
     return JSON.parse(cleaned);

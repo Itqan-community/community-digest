@@ -1,16 +1,17 @@
-import { Pool } from 'pg';
+import mysql from 'mysql2/promise';
 import 'dotenv/config';
 
 let poolInstance = null;
 
 function getPool() {
   if (!poolInstance) {
-    poolInstance = new Pool({
+    poolInstance = mysql.createPool({
       host: process.env.DB_HOST,
-      port: parseInt(process.env.DB_PORT || '5432'),
+      port: parseInt(process.env.DB_PORT || '3306'),
       database: process.env.DB_NAME,
       user: process.env.DB_USER,
-      password: process.env.DB_PASS
+      password: process.env.DB_PASS,
+      timezone: '+00:00'
     });
   }
   return poolInstance;
@@ -31,54 +32,57 @@ export async function fetchRecentPosts() {
   const baseUrl = process.env.FORUM_BASE_URL || 'https://community.itqan.dev';
 
   const query = `
-    SELECT DISTINCT ON (d.discussion_id)
-      d.discussion_id,
+    SELECT
+      d.id,
       d.title,
-      p.text as post_body,
+      p.content as post_body,
       u.username as author_name,
       d.created_at,
       d.view_count,
       d.comment_count as reply_count,
       COALESCE(
-        (SELECT COUNT(*) FROM flarum_likes WHERE discussion_id = d.discussion_id),
+        (SELECT COUNT(*) FROM post_likes WHERE discussion_id = d.id),
         0
       ) as like_count
-    FROM flarum_discussions d
-    JOIN flarum_posts p ON p.discussion_id = d.discussion_id AND p.number = 1
-    JOIN flarum_users u ON u.id = p.user_id
-    WHERE d.created_at >= NOW() - INTERVAL '${days} days'
-      AND d.state = 'public'
+    FROM discussions d
+    JOIN posts p ON p.id = d.first_post_id
+    JOIN users u ON u.id = p.user_id
+    WHERE d.created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
       AND d.hidden_at IS NULL
-    ORDER BY d.discussion_id, d.created_at DESC
-    LIMIT ${limit}
+    ORDER BY d.created_at DESC
+    LIMIT ?
   `;
 
-  const { rows } = await pool.query(query);
+  const [rows] = await pool.query(query, [days, limit]);
 
   return rows.map(row => ({
-    discussion_id: String(row.discussion_id),
+    discussion_id: String(row.id),
     title: row.title,
     body: row.post_body,
     author_name: row.author_name,
-    url: `${baseUrl}/d/${row.discussion_id}`,
+    url: `${baseUrl}/d/${row.id}`,
     created_at: row.created_at,
     view_count: row.view_count || 0,
-    reply_count: row.reply_count || 0,
+    reply_count: row.comment_count || 0,
     like_count: row.like_count || 0,
-    interactions: (row.view_count || 0) + (row.reply_count || 0) + (row.like_count || 0)
+    interactions: (row.view_count || 0) + (row.comment_count || 0) + (row.like_count || 0)
   }));
 }
 
 export async function fetchRecipientEmails() {
   const pool = getPool();
 
+  // const query = `
+  //   SELECT email FROM users
+  //   WHERE email IS NOT NULL
+  //     AND email != ''
+  // `;
   const query = `
-    SELECT email FROM flarum_users
-    WHERE email IS NOT NULL
-      AND email != ''
-      AND active = true
+    SELECT email FROM users
+    WHERE email = 'm.tareq@itqan.dev'
   `;
 
-  const { rows } = await pool.query(query);
+
+  const [rows] = await pool.query(query);
   return rows.map(row => row.email);
 }

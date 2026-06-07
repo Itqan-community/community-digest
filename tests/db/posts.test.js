@@ -1,24 +1,24 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// Mock pg BEFORE importing the module
-// Return a mock object (not undefined) so the singleton pattern works
+// Mock mysql2 BEFORE importing the module
 const MOCK_POOL_OBJ = { query: vi.fn(), end: vi.fn() };
 
-vi.mock('pg', () => {
-  function MockPool() {
-    return MOCK_POOL_OBJ;
-  }
-  return { Pool: MockPool };
+vi.mock('mysql2/promise', () => {
+  return {
+    default: {
+      createPool: vi.fn(() => MOCK_POOL_OBJ)
+    }
+  };
 });
 
-import { Pool } from 'pg';
+import mysql from 'mysql2/promise';
 import { fetchRecentPosts, fetchRecipientEmails, closePool } from '../../db/posts';
 
 describe('fetchRecentPosts', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.stubEnv('DB_HOST', 'localhost');
-    vi.stubEnv('DB_PORT', '5432');
+    vi.stubEnv('DB_PORT', '3306');
     vi.stubEnv('DB_NAME', 'test');
     vi.stubEnv('DB_USER', 'test');
     vi.stubEnv('DB_PASS', 'test');
@@ -33,18 +33,18 @@ describe('fetchRecentPosts', () => {
   it('returns posts with required fields', async () => {
     const mockRows = [
       {
-        discussion_id: 123,
+        id: 123,
         title: 'Test Discussion',
         post_body: 'Test body content',
         author_name: 'Test User',
         created_at: new Date(),
         view_count: 100,
-        reply_count: 10,
+        comment_count: 10,
         like_count: 5
       }
     ];
 
-    MOCK_POOL_OBJ.query.mockResolvedValue({ rows: mockRows });
+    MOCK_POOL_OBJ.query.mockResolvedValue([mockRows]);
 
     const result = await fetchRecentPosts();
 
@@ -57,7 +57,7 @@ describe('fetchRecentPosts', () => {
   });
 
   it('returns empty array when no posts exist', async () => {
-    MOCK_POOL_OBJ.query.mockResolvedValue({ rows: [] });
+    MOCK_POOL_OBJ.query.mockResolvedValue([[]]);
 
     const result = await fetchRecentPosts();
     expect(result).toEqual([]);
@@ -72,18 +72,18 @@ describe('fetchRecentPosts', () => {
   it('handles null numeric fields', async () => {
     const mockRows = [
       {
-        discussion_id: 123,
+        id: 123,
         title: 'Test',
         post_body: 'Body',
         author_name: 'User',
         created_at: new Date(),
         view_count: null,
-        reply_count: null,
+        comment_count: null,
         like_count: null
       }
     ];
 
-    MOCK_POOL_OBJ.query.mockResolvedValue({ rows: mockRows });
+    MOCK_POOL_OBJ.query.mockResolvedValue([mockRows]);
 
     const result = await fetchRecentPosts();
     expect(result[0].interactions).toBe(0);
@@ -95,7 +95,7 @@ describe('fetchRecipientEmails', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.stubEnv('DB_HOST', 'localhost');
-    vi.stubEnv('DB_PORT', '5432');
+    vi.stubEnv('DB_PORT', '3306');
     vi.stubEnv('DB_NAME', 'test');
     vi.stubEnv('DB_USER', 'test');
     vi.stubEnv('DB_PASS', 'test');
@@ -110,7 +110,7 @@ describe('fetchRecipientEmails', () => {
       { email: 'user2@test.com' }
     ];
 
-    MOCK_POOL_OBJ.query.mockResolvedValue({ rows: mockRows });
+    MOCK_POOL_OBJ.query.mockResolvedValue([mockRows]);
 
     const result = await fetchRecipientEmails();
     expect(result).toEqual(['user1@test.com', 'user2@test.com']);

@@ -1,9 +1,9 @@
-import Resend from 'resend';
+import { Resend } from 'resend';
 import fs from 'fs/promises';
 import 'dotenv/config';
 
 const BATCH_SIZE = 50;
-const SENDER_ADDRESS = 'Itqan Community <digest@itqan.dev>';
+const SENDER_ADDRESS = 'Community Digest <digest@newsletter.itqan.dev>';
 
 export async function sendDigestEmail(recipients, html, subject) {
   const resend = new Resend(process.env.RESEND_API_KEY);

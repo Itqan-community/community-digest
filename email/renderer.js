@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import Handlebars from 'handlebars';
+import juice from 'juice';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -27,5 +28,6 @@ export async function renderEmail(digest) {
   }
 
   const compiled = Handlebars.compile(template);
-  return compiled(digest);
+  const html = compiled(digest);
+  return juice(html);
 }

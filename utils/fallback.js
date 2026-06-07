@@ -1,8 +1,11 @@
-import fs from 'fs';
+import fs from 'fs/promises';
 import path from 'path';
 
 const OUTPUTS_DIR = path.join(process.cwd(), 'outputs');
 const LOGS_DIR = path.join(process.cwd(), 'logs');
+
+const BACKOFF_BASE_MS = 1000;
+const BACKOFF_EXPONENT = 2;
 
 export async function withRetry(fn, retries = 3) {
   let lastError;
@@ -15,7 +18,7 @@ export async function withRetry(fn, retries = 3) {
       console.error(`Attempt ${attempt}/${retries} failed:`, error.message);
 
       if (attempt < retries) {
-        const delay = Math.pow(2, attempt) * 1000; // 2s, 4s, 8s
+        const delay = Math.pow(BACKOFF_EXPONENT, attempt) * BACKOFF_BASE_MS; // 2s, 4s, 8s
         console.log(`Retrying in ${delay / 1000}s...`);
         await new Promise(resolve => setTimeout(resolve, delay));
       }
@@ -26,9 +29,7 @@ export async function withRetry(fn, retries = 3) {
 }
 
 export async function saveFallback(artifacts) {
-  if (!fs.existsSync(OUTPUTS_DIR)) {
-    fs.mkdirSync(OUTPUTS_DIR, { recursive: true });
-  }
+  await fs.mkdir(OUTPUTS_DIR, { recursive: true });
 
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
   const filename = `fallback-${timestamp}.json`;
@@ -41,21 +42,17 @@ export async function saveFallback(artifacts) {
     data: artifacts.data
   };
 
-  fs.writeFileSync(filepath, JSON.stringify(data, null, 2));
+  await fs.writeFile(filepath, JSON.stringify(data, null, 2));
   console.log(`Fallback saved to: ${filepath}`);
 
   return filepath;
 }
 
 export function logError(message, error = null) {
-  if (!fs.existsSync(LOGS_DIR)) {
-    fs.mkdirSync(LOGS_DIR, { recursive: true });
-  }
+  const errorMessage = error?.message ?? String(error);
+  const entry = `[${new Date().toISOString()}] ERROR: ${message} — ${errorMessage}`;
 
-  const logFile = path.join(LOGS_DIR, 'digest.log');
-  const entry = `[${new Date().toISOString()}] ERROR: ${message}`;
-  const detail = error ? ` — ${error.message}` : '';
-
-  fs.appendFileSync(logFile, `${entry}${detail}\n`);
-  console.error(entry, detail);
+  fs.mkdir(LOGS_DIR, { recursive: true }).catch(() => {});
+  fs.appendFile(path.join(LOGS_DIR, 'digest.log'), `${entry}\n`).catch(() => {});
+  console.error(entry);
 }

@@ -6,8 +6,26 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const TEMPLATE_PATH = path.join(__dirname, '..', 'template-itqan-digest.html');
 
-export function renderEmail(digest) {
-  let template = fs.readFileSync(TEMPLATE_PATH, 'utf-8');
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function initials(name) {
+  return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+}
+
+export async function renderEmail(digest) {
+  let template;
+  try {
+    template = fs.readFileSync(TEMPLATE_PATH, 'utf-8');
+  } catch (error) {
+    throw new Error(`Failed to read email template: ${error.message}`);
+  }
 
   // 1. Window label
   template = template.replace(
@@ -18,24 +36,24 @@ export function renderEmail(digest) {
   // 2. Featured topic title
   template = template.replace(
     /كيف نتعامل مع الأخطاء التحريفية المنسية في GitHub\؟/,
-    digest.featured_topic?.title || 'لا يوجد موضوع مميز'
+    escapeHtml(digest.featured_topic?.title) || 'لا يوجد موضوع مميز'
   );
 
   // 3. Featured topic excerpt — replace the entire <p> content
   const excerptPattern = /(<p class="text-gray-700 text-md leading-relaxed">)([\s\S]*?)(<\/p>)/;
   if (excerptPattern.test(template)) {
     const authorText = (digest.featured_topic?.author_names || [])
-      .map(name => `<strong>${name}</strong>`)
+      .map(name => `<strong>${escapeHtml(name)}</strong>`)
       .join(' و ');
     const newExcerpt = digest.featured_topic?.excerpt
-      ? digest.featured_topic.excerpt
+      ? escapeHtml(digest.featured_topic.excerpt)
       : `شارك ${authorText} في نقاش مهم هذا الأسبوع.`;
     template = template.replace(excerptPattern, `$1${newExcerpt}$3`);
   }
 
   // 4. Featured topic URL
   template = template.replace(
-    /href="https:\/\/community\.itqan\.dev\/d\/466"/,
+    /href="https:\/\/community\.itqan\.dev\/d\/466"/g,
     `href="${digest.featured_topic?.url || '#'}"`
   );
 
@@ -44,11 +62,11 @@ export function renderEmail(digest) {
   if (theme1) {
     template = template.replace(
       'أداة "مزمن" لمزامنة الآيات بأسهم لوحة المفاتيح',
-      theme1.title
+      escapeHtml(theme1.title)
     );
     template = template.replace(
       /أداة جديدة من تطوير ناصر طاهري.*?كفاءة عالية\./,
-      theme1.description || ''
+      escapeHtml(theme1.description) || ''
     );
     template = template.replace(
       'href="https://community.itqan.dev/d/467"',
@@ -61,11 +79,11 @@ export function renderEmail(digest) {
   if (theme2) {
     template = template.replace(
       'تحسين تجربة المستخدم للتنبيهات في تطبيق زاد المؤمن',
-      theme2.title
+      escapeHtml(theme2.title)
     );
     template = template.replace(
       /نقاش حول ذكاء التنبيهات.*?دون إزعاج\./,
-      theme2.description || ''
+      escapeHtml(theme2.description) || ''
     );
     template = template.replace(
       'href="https://community.itqan.dev/d/463"',
@@ -78,7 +96,7 @@ export function renderEmail(digest) {
   if (questions.length > 0) {
     const questionItems = questions.map(q =>
       `<li class="text-md font-medium leading-relaxed border-b border-itqan-primary/20 pb-4">
-                        • ${q.question}
+                        • ${escapeHtml(q.question)}
                     </li>`
     ).join('\n');
     const questionsBlock = /(<ul class="space-y-6">)([\s\S]*?)(<\/ul>)/;
@@ -90,12 +108,11 @@ export function renderEmail(digest) {
   // and replace everything up to the next heading or the end of the section.
   const contributors = digest.contributors || [];
   if (contributors.length > 0) {
-    const initials = (name) => name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
     const contributorCards = contributors.map(c => `                    <div class="flex items-center gap-4 p-5 rounded-3xl bg-itqan-light/30 border border-transparent hover:border-itqan-primary/20 hover:bg-itqan-light/50 transition-all">
                         <div class="w-12 h-12 rounded-2xl bg-itqan-primary flex items-center justify-center text-white font-bold text-lg">${initials(c.name)}</div>
                         <div>
-                            <h4 class="text-sm font-bold text-itqan-dark">${c.name}</h4>
-                            <p class="text-[11px] text-itqan-dark/60 mt-0.5">${c.contribution}</p>
+                            <h4 class="text-sm font-bold text-itqan-dark">${escapeHtml(c.name)}</h4>
+                            <p class="text-[11px] text-itqan-dark/60 mt-0.5">${escapeHtml(c.contribution)}</p>
                         </div>
                     </div>`).join('\n');
 

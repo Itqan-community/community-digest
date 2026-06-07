@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { renderEmail } from '../../email/renderer';
 
 describe('renderEmail', () => {
-  it('injects digest data into HTML template', () => {
+  it('injects digest data into HTML template', async () => {
     const mockDigest = {
       window_label: 'ملخص الأسبوع: 1 يونيو 2026',
       featured_topic: {
@@ -35,7 +35,7 @@ describe('renderEmail', () => {
       ]
     };
 
-    const html = renderEmail(mockDigest);
+    const html = await renderEmail(mockDigest);
 
     expect(html).toContain('ملخص الأسبوع: 1 يونيو 2026');
     expect(html).toContain('موضوع تجريبي');
@@ -46,19 +46,21 @@ describe('renderEmail', () => {
     expect(html).toContain('https://community.itqan.dev/d/123');
   });
 
-  it('handles empty digest gracefully', () => {
+  it('handles empty digest gracefully', async () => {
     const mockDigest = {
-      window_label: '',
+      window_label: undefined,
       featured_topic: {},
       themes: [],
       open_questions: [],
       contributors: []
     };
 
-    const html = renderEmail(mockDigest);
+    const html = await renderEmail(mockDigest);
 
     // Should still be valid HTML
     expect(html).toContain('<!DOCTYPE html>');
     expect(html).toContain('</html>');
+    // Fallback default should be used
+    expect(html).toContain('ملخص الأسبوع');
   });
 });

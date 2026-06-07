@@ -5,7 +5,12 @@
       "Agent",
       "Bash(git add *)",
       "Bash(git commit *)",
-      "Bash(mv *)"
+      "Bash(mv *)",
+      "Bash(git *)",
+      "Bash(npx *)",
+      "Bash(npm test)",
+      "Bash(ls *)",
+      "Bash(node *)"
     ]
   },
   "$version": 4

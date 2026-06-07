@@ -29,7 +29,6 @@ describe('withRetry', () => {
 describe('saveFallback', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.stubEnv('NODE_ENV', 'test');
   });
 
   it('saves artifacts to outputs directory', async () => {
@@ -42,9 +41,14 @@ describe('saveFallback', () => {
 
     await saveFallback(artifacts);
 
-    // Verify file was created
+    // Verify file was created and contains expected fields
     const fs = await import('fs');
     const outputs = fs.default.readdirSync('outputs');
     expect(outputs.length).toBeGreaterThan(0);
+
+    const saved = JSON.parse(fs.default.readFileSync(`outputs/${outputs[outputs.length - 1]}`, 'utf8'));
+    expect(saved.step).toBe('llm');
+    expect(saved.error).toBe('Test error');
+    expect(saved.data).toEqual({ test: true });
   });
 });

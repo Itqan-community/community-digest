@@ -6,7 +6,12 @@
       "Bash(git add *)",
       "Bash(git commit *)",
       "Bash(mv *)",
-      "Bash(git *)"
+      "Bash(git *)",
+      "Bash(npx *)",
+      "Bash(npm test)",
+      "Bash(ls *)",
+      "Bash(node *)",
+      "Bash(rm *)"
     ]
   },
   "$version": 4

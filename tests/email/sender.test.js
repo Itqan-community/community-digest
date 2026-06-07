@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { sendDigestEmail } from '../../email/sender';
 
 vi.mock('resend', () => {
@@ -14,6 +14,10 @@ describe('sendDigestEmail', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.stubEnv('RESEND_API_KEY', 're_test');
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
   });
 
   it('sends email to all recipients', async () => {

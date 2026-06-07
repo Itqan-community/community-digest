@@ -1,7 +1,12 @@
 {
   "permissions": {
     "allow": [
-      "Bash(mkdir *)"
+      "Bash(mkdir *)",
+      "Agent",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(mv *)",
+      "Bash(git *)"
     ]
   },
   "$version": 4

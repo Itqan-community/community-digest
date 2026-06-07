@@ -1,13 +1,18 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Mock pg BEFORE importing the module
+// Return a mock object (not undefined) so the singleton pattern works
+const MOCK_POOL_OBJ = { query: vi.fn(), end: vi.fn() };
+
 vi.mock('pg', () => {
-  function MockPool() {}
+  function MockPool() {
+    return MOCK_POOL_OBJ;
+  }
   return { Pool: MockPool };
 });
 
 import { Pool } from 'pg';
-import { fetchRecentPosts, fetchRecipientEmails } from '../../db/posts';
+import { fetchRecentPosts, fetchRecipientEmails, closePool } from '../../db/posts';
 
 describe('fetchRecentPosts', () => {
   beforeEach(() => {
@@ -20,6 +25,9 @@ describe('fetchRecentPosts', () => {
     vi.stubEnv('DIGEST_WINDOW_DAYS', '7');
     vi.stubEnv('DIGEST_POSTS_COUNT', '30');
     vi.stubEnv('FORUM_BASE_URL', 'https://community.itqan.dev');
+
+    // Reset the singleton pool between tests
+    closePool().catch(() => {});
   });
 
   it('returns posts with required fields', async () => {
@@ -36,8 +44,7 @@ describe('fetchRecentPosts', () => {
       }
     ];
 
-    Pool.prototype.query = vi.fn().mockResolvedValue({ rows: mockRows });
-    Pool.prototype.end = vi.fn().mockResolvedValue(undefined);
+    MOCK_POOL_OBJ.query.mockResolvedValue({ rows: mockRows });
 
     const result = await fetchRecentPosts();
 
@@ -50,11 +57,37 @@ describe('fetchRecentPosts', () => {
   });
 
   it('returns empty array when no posts exist', async () => {
-    Pool.prototype.query = vi.fn().mockResolvedValue({ rows: [] });
-    Pool.prototype.end = vi.fn().mockResolvedValue(undefined);
+    MOCK_POOL_OBJ.query.mockResolvedValue({ rows: [] });
 
     const result = await fetchRecentPosts();
     expect(result).toEqual([]);
+  });
+
+  it('propagates query error', async () => {
+    MOCK_POOL_OBJ.query.mockRejectedValue(new Error('DB down'));
+
+    await expect(fetchRecentPosts()).rejects.toThrow('DB down');
+  });
+
+  it('handles null numeric fields', async () => {
+    const mockRows = [
+      {
+        discussion_id: 123,
+        title: 'Test',
+        post_body: 'Body',
+        author_name: 'User',
+        created_at: new Date(),
+        view_count: null,
+        reply_count: null,
+        like_count: null
+      }
+    ];
+
+    MOCK_POOL_OBJ.query.mockResolvedValue({ rows: mockRows });
+
+    const result = await fetchRecentPosts();
+    expect(result[0].interactions).toBe(0);
+    expect(result[0].view_count).toBe(0);
   });
 });
 
@@ -66,6 +99,9 @@ describe('fetchRecipientEmails', () => {
     vi.stubEnv('DB_NAME', 'test');
     vi.stubEnv('DB_USER', 'test');
     vi.stubEnv('DB_PASS', 'test');
+
+    // Reset the singleton pool between tests
+    closePool().catch(() => {});
   });
 
   it('returns array of emails', async () => {
@@ -74,8 +110,7 @@ describe('fetchRecipientEmails', () => {
       { email: 'user2@test.com' }
     ];
 
-    Pool.prototype.query = vi.fn().mockResolvedValue({ rows: mockRows });
-    Pool.prototype.end = vi.fn().mockResolvedValue(undefined);
+    MOCK_POOL_OBJ.query.mockResolvedValue({ rows: mockRows });
 
     const result = await fetchRecipientEmails();
     expect(result).toEqual(['user1@test.com', 'user2@test.com']);

@@ -1,14 +1,30 @@
 import { Pool } from 'pg';
 import 'dotenv/config';
 
+let poolInstance = null;
+
+function getPool() {
+  if (!poolInstance) {
+    poolInstance = new Pool({
+      host: process.env.DB_HOST,
+      port: parseInt(process.env.DB_PORT || '5432'),
+      database: process.env.DB_NAME,
+      user: process.env.DB_USER,
+      password: process.env.DB_PASS
+    });
+  }
+  return poolInstance;
+}
+
+export async function closePool() {
+  if (poolInstance) {
+    await poolInstance.end();
+    poolInstance = null;
+  }
+}
+
 export async function fetchRecentPosts() {
-  const pool = new Pool({
-    host: process.env.DB_HOST,
-    port: parseInt(process.env.DB_PORT || '5432'),
-    database: process.env.DB_NAME,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASS
-  });
+  const pool = getPool();
 
   const days = parseInt(process.env.DIGEST_WINDOW_DAYS || '7');
   const limit = parseInt(process.env.DIGEST_POSTS_COUNT || '30');
@@ -37,34 +53,24 @@ export async function fetchRecentPosts() {
     LIMIT ${limit}
   `;
 
-  try {
-    const { rows } = await pool.query(query);
+  const { rows } = await pool.query(query);
 
-    return rows.map(row => ({
-      discussion_id: String(row.discussion_id),
-      title: row.title,
-      body: row.post_body,
-      author_name: row.author_name,
-      url: `${baseUrl}/d/${row.discussion_id}`,
-      created_at: row.created_at,
-      view_count: row.view_count || 0,
-      reply_count: row.reply_count || 0,
-      like_count: row.like_count || 0,
-      interactions: (row.view_count || 0) + (row.reply_count || 0) + (row.like_count || 0)
-    }));
-  } finally {
-    await pool.end();
-  }
+  return rows.map(row => ({
+    discussion_id: String(row.discussion_id),
+    title: row.title,
+    body: row.post_body,
+    author_name: row.author_name,
+    url: `${baseUrl}/d/${row.discussion_id}`,
+    created_at: row.created_at,
+    view_count: row.view_count || 0,
+    reply_count: row.reply_count || 0,
+    like_count: row.like_count || 0,
+    interactions: (row.view_count || 0) + (row.reply_count || 0) + (row.like_count || 0)
+  }));
 }
 
 export async function fetchRecipientEmails() {
-  const pool = new Pool({
-    host: process.env.DB_HOST,
-    port: parseInt(process.env.DB_PORT || '5432'),
-    database: process.env.DB_NAME,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASS
-  });
+  const pool = getPool();
 
   const query = `
     SELECT email FROM flarum_users
@@ -73,10 +79,6 @@ export async function fetchRecipientEmails() {
       AND active = true
   `;
 
-  try {
-    const { rows } = await pool.query(query);
-    return rows.map(row => row.email);
-  } finally {
-    await pool.end();
-  }
+  const { rows } = await pool.query(query);
+  return rows.map(row => row.email);
 }

@@ -36,7 +36,7 @@ export async function fetchRecentPosts() {
       d.id,
       d.title,
       p.content as post_body,
-      u.username as author_name,
+      COALESCE(u.nickname, u.username) as author_name,
       d.created_at,
       d.view_count,
       d.comment_count as reply_count,

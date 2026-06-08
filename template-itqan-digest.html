@@ -4,130 +4,179 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ملخص مجتمع إتقان</title>
-    <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        itqan: {
-                            primary: '#7ba38f',
-                            dark: '#3d6052',
-                            light: '#f0f4f2',
-                            text: '#1f2937'
-                        }
-                    }
-                }
-            }
-        }
-    </script>
+    <!--[if mso]>
+    <noscript>
+        <xml>
+            <o:OfficeDocumentSettings>
+                <o:AllowPNG/>
+                <o:PixelsPerInch>96</o:PixelsPerInch>
+            </o:OfficeDocumentSettings>
+        </xml>
+    </noscript>
+    <![endif]-->
     <style>
         body {
-            font-family: 'Rubik', sans-serif;
+            font-family: 'Rubik', Arial, sans-serif;
             background-color: #fcfcfc;
             color: #1f2937;
             line-height: 1.7;
+            margin: 0;
+            padding: 0;
         }
-        .email-container {
-            max-width: 600px;
-            margin: 0 auto;
-            background: #ffffff;
+        a[x-apple-data-detectors] {
+            color: inherit !important;
+            text-decoration: none !important;
+            font: inherit !important;
         }
-        .btn-itqan {
-            background-color: #7ba38f;
-            box-shadow: 0 4px 14px 0 rgba(123, 163, 143, 0.39);
+        @media only screen and (max-width: 600px) {
+            .mobile-padding { padding: 20px !important; }
+            .mobile-text-2xl { font-size: 22px !important; }
+            .mobile-font-bold { font-size: 18px !important; }
         }
     </style>
 </head>
-<body class="py-10 px-4">
+<body dir="rtl" style="margin: 0; padding: 40px 20px; background-color: #fcfcfc; color: #1f2937; line-height: 1.7; font-family: 'Rubik', Arial, sans-serif; direction: rtl;">
 
-    <div class="email-container rounded-[2.5rem] overflow-hidden shadow-sm border border-gray-100">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width: 600px; margin: 0 auto;" dir="rtl">
+        <tr>
+            <td style="background: #ffffff; border-radius: 2.5rem; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border: 1px solid #f3f4f6;" dir="rtl">
 
-        <!-- Header Section -->
-        <div class="bg-itqan-dark p-12 text-white text-right relative overflow-hidden">
-            <div class="relative z-10">
-                <h1 class="text-2xl font-bold tracking-tight mb-2 flex items-center gap-2">
-                    إتقان <span class="text-itqan-primary">·</span> Itqan
-                </h1>
-                <p class="text-itqan-light/70 text-sm font-light">ملخص الأسبوع: {{default window_label 'ملخص الأسبوع'}}</p>
-            </div>
-            <div class="absolute -left-10 -top-10 w-40 h-40 bg-itqan-primary/20 rounded-full"></div>
-        </div>
+                <!-- Header Section -->
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #3d6052;">
+                    <tr>
+                        <!-- Text content (right side) -->
+                        <td valign="middle" style="padding: 48px 48px 48px 0; text-align: right;">
+                            <h1 style="margin: 0 0 8px 0; font-size: 24px; font-weight: 700; letter-spacing: -0.02em; color: #ffffff;">
+                                <span style="white-space: nowrap;">إتقان <span style="color: #7ba38f;">·</span> Itqan</span>
+                            </h1>
+                            <p style="margin: 0; font-size: 14px; font-weight: 300; color: rgba(240, 244, 242, 0.7);">ملخص الأسبوع: {{default window_label 'ملخص الأسبوع'}}</p>
+                        </td>
+                        <!-- Decorative circle (top-left corner) -->
+                        <td width="160" valign="top" style="width: 160px; height: 260px; vertical-align: top;" aria-hidden="true">
+                            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" height="100%">
+                                <tr>
+                                    <td style="width: 160px; height: 160px; background-color: rgba(123, 163, 143, 0.2); border-radius: 50%;"></td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                </table>
 
-        <div class="p-10">
+                <!-- Main Content -->
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="padding: 40px;" dir="rtl" class="mobile-padding">
 
-            <!-- 1. الموضوع الرئيسي (Featured Topic) -->
-            <div class="mb-16">
-                <span class="inline-block bg-itqan-light text-itqan-dark text-[10px] font-bold px-3 py-1 rounded-full mb-4 uppercase tracking-widest border border-itqan-primary/20">النقاش الأكثر تفاعلاً</span>
-                <h2 class="text-3xl font-bold text-itqan-dark mb-6 leading-tight">{{featured_topic.title}}</h2>
-                <div class="bg-itqan-light/50 border-r-4 border-itqan-primary p-6 rounded-2xl mb-8">
-                    <p class="text-gray-700 text-md leading-relaxed">{{featured_topic.excerpt}}</p>
-                </div>
-                <a href="{{featured_topic.url}}" class="inline-block btn-itqan text-white text-sm font-bold px-12 py-4 rounded-2xl hover:opacity-90 transition-all text-center w-full sm:w-auto">
-                    عد إلى المناقشة الآن
-                </a>
-            </div>
+                    <!-- 1. الموضوع الرئيسي (Featured Topic) -->
+                    <tr>
+                        <td dir="rtl" style="margin-bottom: 64px;">
+                            <span dir="rtl" style="display: inline-block; background-color: #f0f4f2; color: #3d6052; font-size: 10px; font-weight: 700; padding: 4px 12px; border-radius: 9999px; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.1em; border: 1px solid rgba(123, 163, 143, 0.2);">النقاش الأكثر تفاعلاً</span>
+                            <h2 dir="rtl" style="margin: 0 0 24px 0; font-size: 30px; font-weight: 700; color: #3d6052; line-height: 1.3;">{{featured_topic.title}}</h2>
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: rgba(240, 244, 242, 0.5); border-right: 4px solid #7ba38f; padding: 24px; border-radius: 1rem; margin-bottom: 32px;" dir="rtl">
+                                <tr>
+                                    <td dir="rtl" style="color: #4b5563; font-size: 16px; line-height: 1.7;">{{featured_topic.excerpt}}</td>
+                                </tr>
+                            </table>
+                            <a href="{{featured_topic.url}}" dir="rtl" style="display: inline-block; background-color: #7ba38f; color: #ffffff; font-size: 14px; font-weight: 700; padding: 16px 48px; border-radius: 1rem; text-decoration: none; box-shadow: 0 4px 14px rgba(123, 163, 143, 0.39); text-align: center;" target="_blank">
+                                عد إلى المناقشة الآن
+                            </a>
+                        </td>
+                    </tr>
 
-            <!-- 2. محاور الأسبوع (Themes) -->
-            <div class="mb-16">
-                <h3 class="text-[11px] font-bold text-itqan-dark/40 uppercase tracking-[0.2em] mb-8 border-b border-gray-100 pb-3">محاور الأسبوع</h3>
-                <div class="space-y-10">
-                    {{#each themes}}
-                    <div>
-                        <a href="{{this.url}}" class="text-xl font-bold text-itqan-dark hover:text-itqan-primary transition-colors block mb-2 underline decoration-itqan-light underline-offset-8">
-                            {{this.title}}
-                        </a>
-                        <p class="text-sm text-gray-500 max-w-md">{{this.description}}</p>
-                    </div>
-                    {{/each}}
-                </div>
-            </div>
+                    <!-- 2. محاور الأسبوع (Themes) -->
+                    <tr>
+                        <td dir="rtl" style="padding-bottom: 48px;">
+                            <h3 dir="rtl" style="margin: 0 0 32px 0; font-size: 11px; font-weight: 700; color: rgba(61, 96, 82, 0.4); text-transform: uppercase; letter-spacing: 0.2em; border-bottom: 1px solid #f3f4f6; padding-bottom: 12px;">محاور الأسبوع</h3>
+                            {{#each themes}}
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 40px;" dir="rtl">
+                                <tr>
+                                    <td dir="rtl">
+                                        <a href="{{this.url}}" dir="rtl" style="font-size: 20px; font-weight: 700; color: #3d6052; text-decoration: underline; text-decoration-color: #f0f4f2; text-underline-offset: 8px; display: block; margin-bottom: 8px;" target="_blank">{{this.title}}</a>
+                                        <p dir="rtl" style="margin: 0; font-size: 14px; color: #6b7280; max-width: 400px;">{{this.description}}</p>
+                                    </td>
+                                </tr>
+                            </table>
+                            {{/each}}
+                        </td>
+                    </tr>
 
-            <!-- 3. الأسئلة المفتوحة (Open Questions) -->
-            <div class="bg-itqan-dark text-itqan-light rounded-[2rem] p-10 mb-16 shadow-lg shadow-itqan-dark/10">
-                <h3 class="text-itqan-primary font-bold text-sm mb-8 flex items-center gap-3">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    أسئلة للنقاش
-                </h3>
-                <ul class="space-y-6">
-                    {{#each open_questions}}
-                    <li class="text-md font-medium leading-relaxed border-b border-itqan-primary/20 pb-4">
-                        • {{this.question}}
-                    </li>
-                    {{/each}}
-                </ul>
-            </div>
+                    <!-- 3. الأسئلة المفتوحة (Open Questions) -->
+                    <tr>
+                        <td dir="rtl" style="padding-bottom: 48px;">
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f0f4f2; border-radius: 2rem; padding: 40px;" dir="rtl">
+                                <tr>
+                                    <td dir="rtl">
+                                        <h3 dir="rtl" style="margin: 0 0 32px 0; color: #3d6052; font-size: 14px; font-weight: 700;">
+                                            <span style="vertical-align: middle; font-size: 16px; margin-left: 8px;">❓</span>
+                                            أسئلة للنقاش
+                                        </h3>
+                                        <ul dir="rtl" style="margin: 0; padding: 0; list-style: none;">
+                                            {{#each open_questions}}
+                                            <li dir="rtl" style="font-size: 16px; font-weight: 500; line-height: 1.7; border-bottom: 1px solid rgba(61, 96, 82, 0.12); padding-bottom: 16px; margin-bottom: 16px; color: #3d6052;">
+                                                • {{this.question}}
+                                            </li>
+                                            {{/each}}
+                                        </ul>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
 
-            <!-- 4. أبرز المساهمين (Contributors) -->
-            <div>
-                <h3 class="text-[11px] font-bold text-itqan-dark/40 uppercase tracking-[0.2em] mb-8 border-b border-gray-100 pb-3">أبرز المساهمين</h3>
-                <div class="grid grid-cols-1 gap-4">
-                    {{#each contributors}}
-                    <div class="flex items-center gap-4 p-5 rounded-3xl bg-itqan-light/30 border border-transparent hover:border-itqan-primary/20 hover:bg-itqan-light/50 transition-all">
-                        <div class="w-12 h-12 rounded-2xl bg-itqan-primary flex items-center justify-center text-white font-bold text-lg">{{initials this.name}}</div>
-                        <div>
-                            <h4 class="text-sm font-bold text-itqan-dark">{{this.name}}</h4>
-                            <p class="text-[11px] text-itqan-dark/60 mt-0.5">{{this.contribution}}</p>
-                        </div>
-                    </div>
-                    {{/each}}
-                </div>
-            </div>
-        </div>
+                    <!-- 4. أبرز المساهمين (Contributors) -->
+                    <tr>
+                        <td dir="rtl">
+                            <h3 dir="rtl" style="margin: 0 0 32px 0; font-size: 11px; font-weight: 700; color: rgba(61, 96, 82, 0.4); text-transform: uppercase; letter-spacing: 0.2em; border-bottom: 1px solid #f3f4f6; padding-bottom: 12px;">أبرز المساهمين</h3>
+                            {{#each contributors}}
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 16px;" dir="rtl">
+                                <tr>
+                                    <td dir="rtl" style="padding: 20px; border-radius: 1.5rem; background-color: rgba(240, 244, 242, 0.3); border: 1px solid transparent;">
+                                        <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                                            <tr>
+                                                <td style="width: 48px; height: 48px; background-color: #7ba38f; border-radius: 50%; text-align: center; vertical-align: middle;">
+                                                    <span style="color: #ffffff; font-weight: 700; font-size: 18px;">{{initials this.name}}</span>
+                                                </td>
+                                                <td width="16"></td>
+                                                <td valign="middle">
+                                                    <h4 dir="rtl" style="margin: 0; font-size: 14px; font-weight: 700; color: #3d6052;">{{this.name}}</h4>
+                                                    <p dir="rtl" style="margin: 2px 0 0 0; font-size: 11px; color: rgba(61, 96, 82, 0.6);">{{this.contribution}}</p>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+                            {{/each}}
+                        </td>
+                    </tr>
 
-        <!-- Footer -->
-        <div class="bg-itqan-light/50 p-12 text-center border-t border-gray-50">
-            <div class="flex justify-center gap-10 mb-8">
-                <a href="https://community.itqan.dev" class="text-xs font-bold text-itqan-dark/50 hover:text-itqan-primary transition-colors">المنتدى</a>
-                <a href="#" class="text-xs font-bold text-itqan-dark/50 hover:text-itqan-primary transition-colors">الإشعارات</a>
-                <a href="#" class="text-xs font-bold text-itqan-dark/50 hover:text-itqan-primary transition-colors">عن إتقان</a>
-            </div>
-            <div class="opacity-40 grayscale inline-flex items-center">
-                <span class="text-[10px] font-bold tracking-[0.4em] text-itqan-dark uppercase leading-none">Itqan Community 2026</span>
-            </div>
-        </div>
-    </div>
+                </table>
+
+                <!-- Footer -->
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: rgba(240, 244, 242, 0.5); padding: 48px; text-align: center; border-top: 1px solid #f3f4f5;" dir="rtl">
+                    <tr>
+                        <td dir="rtl">
+                            <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin: 0 auto 32px auto;">
+                                <tr>
+                                    <td style="padding: 0 40px;">
+                                        <a href="https://community.itqan.dev" dir="rtl" style="font-size: 12px; font-weight: 700; color: rgba(61, 96, 82, 0.5); text-decoration: none;" target="_blank">المنتدى</a>
+                                    </td>
+                                    <td style="padding: 0 40px;">
+                                        <a href="#" dir="rtl" style="font-size: 12px; font-weight: 700; color: rgba(61, 96, 82, 0.5); text-decoration: none;">الإشعارات</a>
+                                    </td>
+                                    <td style="padding: 0 40px;">
+                                        <a href="#" dir="rtl" style="font-size: 12px; font-weight: 700; color: rgba(61, 96, 82, 0.5); text-decoration: none;">عن إتقان</a>
+                                    </td>
+                                </tr>
+                            </table>
+                            <div style="opacity: 0.4; -webkit-filter: grayscale(100%); filter: grayscale(100%); display: inline-flex; align-items: center;">
+                                <span style="font-size: 10px; font-weight: 700; letter-spacing: 0.4em; color: #3d6052; text-transform: uppercase;">Itqan Community 2026</span>
+                            </div>
+                        </td>
+                    </tr>
+                </table>
+
+            </td>
+        </tr>
+    </table>
 
 </body>
 </html>

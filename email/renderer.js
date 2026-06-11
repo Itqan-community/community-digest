@@ -14,6 +14,9 @@ Handlebars.registerHelper('initials', (name) => {
   return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
 });
 
+// Register Handlebars helper for arithmetic addition
+Handlebars.registerHelper('add', (a, b) => parseInt(a, 10) + parseInt(b, 10));
+
 // Register Handlebars helper for default values
 Handlebars.registerHelper('default', (value, defaultValue) => {
   return value || defaultValue;

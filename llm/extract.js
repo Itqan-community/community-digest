@@ -1,5 +1,16 @@
 import 'dotenv/config';
 
+const ARABIC_DAYS = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+const ARABIC_MONTHS = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+
+function toArabicDate(date) {
+  const day = ARABIC_DAYS[date.getDay()];
+  const num = date.getDate();
+  const month = ARABIC_MONTHS[date.getMonth()];
+  const year = date.getFullYear();
+  return `${day} ${num} ${month} ${year}`;
+}
+
 const SYSTEM_PROMPT = `
 Role:
 You are a specialized Data Extraction Engine for the "Itqan Community" weekly digest. Your goal is to transform raw forum discussion logs into a highly structured JSON object that will be injected into an HTML email template.
@@ -21,7 +32,7 @@ JSON STRUCTURE SCHEMA:
 You must adhere to this exact schema:
 
 {
-  "window_label": "String (Format: 'ملخص الأسبوع: [Day] [Date] [Month] [Year]' in Arabic)",
+  "window_label": "String (Use the exact value provided in the DATE CONTEXT section below — do NOT calculate or guess the date)",
   "featured_topic": {
     "title": "String (The headline of the main discussion)",
     "excerpt": "String (A 2-3 sentence summary highlighting the main tension or solution in the discussion)",
@@ -46,7 +57,8 @@ You must adhere to this exact schema:
   "contributors": [
     {
       "name": "String (The user's display name)",
-      "contribution": "String (A brief, professional description of their contribution in Arabic, mentioning the discussion ID e.g., 'ساهم في تطوير... (#123)')",
+      "contribution": "String (A brief, professional description of their contribution in Arabic, e.g., 'ساهم في تطوير...')",
+      "url": "String (The direct link to their main discussion)",
       "discussion_ids": ["Array of Strings (The numeric IDs of the discussions they participated in)"]
     }
   ]
@@ -57,6 +69,9 @@ Mapping Instructions for Logic:
 - Themes: If multiple posts discuss the same topic, consolidate them into one theme object.
 - Contributors: A contributor is someone who provided technical insight, a new tool, or a significant perspective.
 - Discussion ID: Always extract the numeric ID from the end of the URL (e.g., from community.itqan.dev/d/466, the ID is 466).
+
+DATE CONTEXT:
+The digest covers the period from {{DATE_FROM}} to {{DATE_TO}}. Use this exact date for the window_label.
 
 Input Data (Raw Forum Logs):
 `;
@@ -101,7 +116,28 @@ function parseResponse(text) {
 
 export async function extractDigest(posts) {
   const extractInsights = await loadProvider();
-  const prompt = SYSTEM_PROMPT + formatPostsForPrompt(posts);
+
+  // Compute the date window in Node.js (posts are ordered DESC, so last = oldest)
+  const oldestPost = posts.length > 0 ? posts[posts.length - 1] : null;
+  const days = oldestPost
+    ? Math.max(1, Math.round((Date.now() - new Date(oldestPost.created_at).getTime()) / 86400000))
+    : 7;
+  const fromDate = new Date();
+  fromDate.setDate(fromDate.getDate() - days);
+  const toDate = new Date();
+  const dateFrom = toArabicDate(fromDate);
+  const dateTo = toArabicDate(toDate);
+
+  const prompt = SYSTEM_PROMPT
+    .replace('{{DATE_FROM}}', dateFrom)
+    .replace('{{DATE_TO}}', dateTo)
+    + formatPostsForPrompt(posts);
+
   const rawText = await extractInsights(prompt);
-  return parseResponse(rawText);
+  const digest = parseResponse(rawText);
+
+  // Override window_label with the computed date to ensure correctness
+  digest.window_label = `ملخص الأسبوع: ${dateFrom} - ${dateTo}`;
+
+  return digest;
 }

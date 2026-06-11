@@ -49,13 +49,15 @@
                             <h1 style="margin: 0 0 8px 0; font-size: 24px; font-weight: 700; letter-spacing: -0.02em; color: #ffffff;">
                                 <span style="white-space: nowrap;">إتقان <span style="color: #7ba38f;">·</span> Itqan</span>
                             </h1>
-                            <p style="margin: 0; font-size: 14px; font-weight: 300; color: rgba(240, 244, 242, 0.7);">ملخص الأسبوع: {{default window_label 'ملخص الأسبوع'}}</p>
+                            <p style="margin: 0; font-size: 14px; font-weight: 300; color: rgba(240, 244, 242, 0.7);">{{default window_label 'ملخص الأسبوع'}}</p>
                         </td>
                         <!-- Decorative circle (top-left corner) -->
                         <td width="160" valign="top" style="width: 160px; height: 260px; vertical-align: top;" aria-hidden="true">
                             <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" height="100%">
                                 <tr>
-                                    <td style="width: 160px; height: 160px; background-color: rgba(123, 163, 143, 0.2); border-radius: 50%;"></td>
+                                    <td style="width: 160px; height: 160px; text-align: center; vertical-align: middle;">
+                                        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="80" height="80" style="border-radius: 50%; background-color: rgba(123, 163, 143, 0.2);"></table>
+                                    </td>
                                 </tr>
                             </table>
                         </td>
@@ -76,14 +78,14 @@
                                 </tr>
                             </table>
                             <a href="{{featured_topic.url}}" dir="rtl" style="display: inline-block; background-color: #7ba38f; color: #ffffff; font-size: 14px; font-weight: 700; padding: 16px 48px; border-radius: 1rem; text-decoration: none; box-shadow: 0 4px 14px rgba(123, 163, 143, 0.39); text-align: center;" target="_blank">
-                                عد إلى المناقشة الآن
+                                اذهب الى النقاش
                             </a>
                         </td>
                     </tr>
 
                     <!-- 2. محاور الأسبوع (Themes) -->
                     <tr>
-                        <td dir="rtl" style="padding-bottom: 48px;">
+                        <td dir="rtl" style="padding-top: 64px; padding-bottom: 48px;">
                             <h3 dir="rtl" style="margin: 0 0 32px 0; font-size: 11px; font-weight: 700; color: rgba(61, 96, 82, 0.4); text-transform: uppercase; letter-spacing: 0.2em; border-bottom: 1px solid #f3f4f6; padding-bottom: 12px;">محاور الأسبوع</h3>
                             {{#each themes}}
                             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 40px;" dir="rtl">
@@ -131,13 +133,19 @@
                                     <td dir="rtl" style="padding: 20px; border-radius: 1.5rem; background-color: rgba(240, 244, 242, 0.3); border: 1px solid transparent;">
                                         <table role="presentation" cellpadding="0" cellspacing="0" border="0">
                                             <tr>
-                                                <td style="width: 48px; height: 48px; background-color: #7ba38f; border-radius: 50%; text-align: center; vertical-align: middle;">
-                                                    <span style="color: #ffffff; font-weight: 700; font-size: 18px;">{{initials this.name}}</span>
+                                                <td style="width: 48px; height: 48px; text-align: center; vertical-align: middle;">
+                                                    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="48" height="48" style="border-radius: 50%; background-color: #7ba38f;">
+                                                        <tr>
+                                                            <td style="text-align: center; vertical-align: middle;">
+                                                                <span style="color: #ffffff; font-weight: 700; font-size: 18px;">{{add @index 1}}</span>
+                                                            </td>
+                                                        </tr>
+                                                    </table>
                                                 </td>
                                                 <td width="16"></td>
                                                 <td valign="middle">
                                                     <h4 dir="rtl" style="margin: 0; font-size: 14px; font-weight: 700; color: #3d6052;">{{this.name}}</h4>
-                                                    <p dir="rtl" style="margin: 2px 0 0 0; font-size: 11px; color: rgba(61, 96, 82, 0.6);">{{this.contribution}}</p>
+                                                    <a dir="rtl" href="{{this.url}}" style="margin: 2px 0 0 0; font-size: 11px; color: rgba(61, 96, 82, 0.6); text-decoration: none; display: inline-block;" target="_blank">{{this.contribution}}</a>
                                                 </td>
                                             </tr>
                                         </table>

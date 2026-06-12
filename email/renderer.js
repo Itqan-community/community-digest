@@ -8,6 +8,19 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const TEMPLATE_PATH = path.join(__dirname, '..', 'template-itqan-digest.html');
 
+const ARABIC_DAYS = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+const ARABIC_MONTHS = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+
+// Register Handlebars helper for today's Arabic date
+Handlebars.registerHelper('todayArabic', () => {
+  const now = new Date();
+  const day = ARABIC_DAYS[now.getDay()];
+  const num = now.getDate();
+  const month = ARABIC_MONTHS[now.getMonth()];
+  const year = now.getFullYear();
+  return `${day} ${num} ${month} ${year}`;
+});
+
 // Register Handlebars helper to generate initials from a name
 Handlebars.registerHelper('initials', (name) => {
   if (!name) return '';

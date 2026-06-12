@@ -72,15 +72,15 @@ export async function fetchRecentPosts() {
 export async function fetchRecipientEmails() {
   const pool = getPool();
 
-  // const query = `
-  //   SELECT email FROM users
-  //   WHERE email IS NOT NULL
-  //     AND email != ''
-  // `;
   const query = `
     SELECT email FROM users
-    WHERE email = 'm.tareq@itqan.dev'
+    WHERE email IS NOT NULL
+      AND email != ''
   `;
+  // const query = `
+  //   SELECT email FROM users
+  //   WHERE email = 'm.tareq@itqan.dev'
+  // `;
 
 
   const [rows] = await pool.query(query);

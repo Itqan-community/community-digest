@@ -68,7 +68,7 @@ You must adhere to this exact schema:
 Mapping Instructions for Logic:
 - Featured Topic Excerpt: In the excerpt, if specific users are mentioned, incorporate them naturally into the Arabic text (e.g., "أشار [Name] إلى...").
 - Themes: If multiple posts discuss the same topic, consolidate them into one theme object.
-- Contributors: A contributor is someone who provided technical insight, a new tool, or a significant perspective. Extract their `user_id` from the URL in the post data (e.g., from community.itqan.dev/u/123, the ID is 123).
+- Contributors: A contributor is someone who provided technical insight, a new tool, or a significant perspective. Extract their user_id from the URL in the post data (e.g., from community.itqan.dev/u/123, the ID is 123).
 - Discussion ID: Always extract the numeric ID from the end of the URL (e.g., from community.itqan.dev/d/466, the ID is 466).
 
 DATE CONTEXT:

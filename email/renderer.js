@@ -22,6 +22,12 @@ Handlebars.registerHelper('default', (value, defaultValue) => {
   return value || defaultValue;
 });
 
+// Register Handlebars helper to build a community user profile URL
+Handlebars.registerHelper('profileUrl', (userId) => {
+  if (!userId) return '#';
+  return `https://community.itqan.dev/u/${userId}`;
+});
+
 export async function renderEmail(digest) {
   let template;
   try {

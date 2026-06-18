@@ -1,51 +1,87 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { sendDigestEmail } from '../../email/sender';
+import { sendDigestEmail } from '../../email/sender.js';
 
-vi.mock('resend', () => {
-  const mockSend = vi.fn();
-  const Resend = vi.fn(function () {
+const mockSend = vi.fn();
+vi.mock('resend', () => ({
+  Resend: vi.fn(function () {
     this.emails = { send: mockSend };
-  });
-  return { Resend, mockSend };
-});
-import { Resend, mockSend } from 'resend';
+  })
+}));
+
+vi.mock('../../db/subscribers.js', () => ({
+  fetchSubscribedRecipients: vi.fn(),
+  ensureSubscriberExists: vi.fn()
+}));
 
 describe('sendDigestEmail', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.stubEnv('RESEND_API_KEY', 're_test');
+    vi.stubEnv('SEND_MODE', 'test');
   });
 
   afterEach(() => {
     vi.unstubAllEnvs();
   });
 
-  it('sends email to all recipients', async () => {
-    mockSend.mockResolvedValue({ id: 'test-id' });
+  it('sendDigestEmail_sendsIndividuallyPerRecipient', async () => {
+    mockSend.mockResolvedValue({ id: 'msg-1' });
 
-    const recipients = ['user1@test.com', 'user2@test.com'];
-    const html = '<html>Test</html>';
-    const subject = 'Test Subject';
+    const recipients = [
+      { email: 'a@test.com', token: 'tok-a' },
+      { email: 'b@test.com', token: 'tok-b' },
+      { email: 'c@test.com', token: 'tok-c' }
+    ];
+    const htmlFn = (token) => `<html>${token}</html>`;
 
-    const result = await sendDigestEmail(recipients, html, subject);
+    const result = await sendDigestEmail(recipients, htmlFn, 'Subject');
 
-    expect(result.sent).toBe(2);
+    // N recipients → N individual send calls
+    expect(mockSend).toHaveBeenCalledTimes(3);
+    // Each call has exactly 1 recipient in `to`
+    for (const call of mockSend.mock.calls) {
+      expect(call[0].to).toHaveLength(1);
+    }
+    expect(result.sent).toBe(3);
     expect(result.failed).toBe(0);
   });
 
-  it('handles send failures gracefully', async () => {
+  it('sendDigestEmail_injectsPerRecipientToken', async () => {
+    mockSend.mockResolvedValue({ id: 'msg-1' });
+
+    const recipients = [
+      { email: 'a@test.com', token: 'TOKEN_A' },
+      { email: 'b@test.com', token: 'TOKEN_B' }
+    ];
+    const htmlFn = (token) => `<a href="__UNSUBSCRIBE_PLACEHOLDER__">x</a>`.replace(/__UNSUBSCRIBE_PLACEHOLDER__/g, `https://digest.itqan.dev/unsubscribe?token=${token}`);
+
+    await sendDigestEmail(recipients, htmlFn, 'Subject');
+
+    const calls = mockSend.mock.calls;
+    expect(calls[0][0].html).toContain('TOKEN_A');
+    expect(calls[1][0].html).toContain('TOKEN_B');
+    // Ensure tokens don't cross
+    expect(calls[0][0].html).not.toContain('TOKEN_B');
+    expect(calls[1][0].html).not.toContain('TOKEN_A');
+  });
+
+  it('sendDigestEmail_oneFailureDoesNotAbortRest', async () => {
     mockSend
-      .mockResolvedValueOnce({ id: 'test-id' })
-      .mockRejectedValueOnce(new Error('Failed'));
+      .mockResolvedValueOnce({ id: 'msg-1' })
+      .mockRejectedValueOnce(new Error('send failed'))
+      .mockResolvedValueOnce({ id: 'msg-3' });
 
-    // 51 recipients: first batch (50) succeeds, second batch (1) fails
-    const recipients = Array.from({ length: 51 }, (_, i) => `user${i}@test.com`);
-    const html = '<html>Test</html>';
-    const subject = 'Test Subject';
+    const recipients = [
+      { email: 'a@test.com', token: 'tok-a' },
+      { email: 'b@test.com', token: 'tok-b' },
+      { email: 'c@test.com', token: 'tok-c' }
+    ];
+    const htmlFn = (token) => `<html>${token}</html>`;
 
-    const result = await sendDigestEmail(recipients, html, subject);
+    const result = await sendDigestEmail(recipients, htmlFn, 'Subject');
 
-    expect(result.sent).toBe(50);
+    expect(mockSend).toHaveBeenCalledTimes(3);
+    expect(result.sent).toBe(2);
     expect(result.failed).toBe(1);
   });
 });

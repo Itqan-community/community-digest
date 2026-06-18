@@ -8,7 +8,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "digest": "node digest.js",
-    "digest:dry-run": "DRY_RUN=true node digest.js"
+    "digest:dry-run": "DRY_RUN=true node digest.js",
+    "server": "node server.js"
   },
   "keywords": [],
   "author": "",

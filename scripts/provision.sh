@@ -9,7 +9,7 @@ DO_PROJECT_ID="aa45e321-748b-45d7-b411-7c3f68260ded"
 REGION="lon1"
 SIZE="s-1vcpu-1gb"
 IMAGE="ubuntu-22-04-x64"
-SSH_KEY_ID="49711842"
+SSH_KEY_ID="49787051"  # itqan-key — matches ~/.ssh/id_rsa on dev machine
 DROPLET_NAME="community-digest"
 REFERENCE_DROPLET="flarum-prod-db"
 
@@ -111,10 +111,13 @@ echo "Copying .env to droplet..."
 scp -o StrictHostKeyChecking=no -i "$SSH_KEY_PATH" \
   .env "root@$PUBLIC_IP:/tmp/.env.digest"
 
-# 9. Run setup on the droplet
+# 9. Copy and run setup on the droplet (SCP avoids stdin conflicts with bash -s)
+echo "Copying setup script to droplet..."
+scp -o StrictHostKeyChecking=no -i "$SSH_KEY_PATH" \
+  scripts/setup.sh "root@$PUBLIC_IP:/tmp/setup.sh"
 echo "Running setup script on droplet..."
 ssh -o StrictHostKeyChecking=no -i "$SSH_KEY_PATH" "root@$PUBLIC_IP" \
-  "bash -s" < scripts/setup.sh
+  "bash /tmp/setup.sh"
 
 echo ""
 echo "=== Provisioning complete ==="

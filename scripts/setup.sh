@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # setup.sh — configure the community-digest droplet after creation
-# Run via provision.sh (SSH'd as root), or manually: bash scripts/setup.sh
+# Run via provision.sh (SCP'd then executed as root), or manually: bash scripts/setup.sh
 # Idempotent — safe to re-run.
 
 set -euo pipefail
@@ -11,13 +11,13 @@ LOG_DIR="/var/log/community-digest"
 NODE_VERSION="20"
 
 echo "--- Installing system packages ---"
-apt-get update -qq
-apt-get install -y -qq curl git nginx certbot python3-certbot-nginx mysql-client
+DEBIAN_FRONTEND=noninteractive apt-get update -qq
+DEBIAN_FRONTEND=noninteractive apt-get install -y -qq curl git nginx certbot python3-certbot-nginx mysql-client
 
 echo "--- Installing Node.js $NODE_VERSION ---"
 if ! command -v node &>/dev/null || [[ "$(node --version | cut -d. -f1 | tr -d v)" -lt "$NODE_VERSION" ]]; then
   curl -fsSL https://deb.nodesource.com/setup_${NODE_VERSION}.x | bash -
-  apt-get install -y nodejs
+  DEBIAN_FRONTEND=noninteractive apt-get install -y nodejs
 fi
 echo "  Node: $(node --version)  npm: $(npm --version)"
 
@@ -66,12 +66,14 @@ else
   pm2 save
 fi
 
-# Enable PM2 startup on boot (prints a command — must be run if not already done)
-pm2 startup | grep "sudo" | bash || true
+# Enable PM2 startup on boot
+pm2 startup systemd -u root --hp /root | tail -1 | bash || true
+pm2 save
 
 echo "--- Cron job ---"
 CRON_LINE="0 9 * * 1 cd $APP_DIR && /usr/bin/node digest.js >> $LOG_DIR/cron.log 2>&1"
-( crontab -l 2>/dev/null | grep -v "community-digest"; echo "$CRON_LINE" ) | crontab -
+# grep -v on empty crontab returns exit 1 — || true prevents pipefail killing the script
+( crontab -l 2>/dev/null | grep -v "community-digest" || true; echo "$CRON_LINE" ) | crontab -
 echo "  Cron: $CRON_LINE"
 
 echo "--- nginx config ---"
@@ -102,7 +104,7 @@ echo "  Logs: $LOG_DIR/cron.log"
 echo "  PM2:  pm2 status | pm2 logs digest-server"
 echo ""
 echo "  Once DNS A record for digest.community.itqan.dev is live, run:"
-echo "  certbot --nginx -d digest.community.itqan.dev"
+echo "  certbot --nginx -d digest.community.itqan.dev --non-interactive --agree-tos -m admin@itqan.dev"
 echo ""
 echo "  Test the digest (sends to TEST_RECIPIENT_EMAIL only):"
 echo "  cd $APP_DIR && SEND_MODE=test node digest.js"

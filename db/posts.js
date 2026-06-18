@@ -36,6 +36,7 @@ export async function fetchRecentPosts() {
       d.id,
       d.title,
       p.content as post_body,
+      u.id as author_user_id,
       COALESCE(u.nickname, u.username) as author_name,
       d.created_at,
       d.view_count,
@@ -59,6 +60,7 @@ export async function fetchRecentPosts() {
     discussion_id: String(row.id),
     title: row.title,
     body: row.post_body,
+    author_user_id: row.author_user_id,
     author_name: row.author_name,
     url: `${baseUrl}/d/${row.id}`,
     created_at: row.created_at,
@@ -66,6 +68,37 @@ export async function fetchRecentPosts() {
     reply_count: row.comment_count || 0,
     like_count: row.like_count || 0,
     interactions: (row.view_count || 0) + (row.comment_count || 0) + (row.like_count || 0)
+  }));
+}
+
+// Fetch ALL posts (including replies) in the digest window for contributor weighting.
+// Unlike fetchRecentPosts (first_post_id only), this captures every contribution.
+// Schema gate: verify posts.discussion_id, posts.type, posts.created_at, discussions.hidden_at exist.
+export async function fetchContributorActivity() {
+  const pool = getPool();
+  const days = parseInt(process.env.DIGEST_WINDOW_DAYS || '7');
+
+  const query = `
+    SELECT
+      u.id                             AS author_user_id,
+      COALESCE(u.nickname, u.username) AS author_name,
+      p.discussion_id,
+      p.created_at
+    FROM posts p
+    JOIN users u       ON u.id = p.user_id
+    JOIN discussions d ON d.id = p.discussion_id
+    WHERE p.created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
+      AND p.type = 'comment'
+      AND d.hidden_at IS NULL
+      AND u.id IS NOT NULL
+  `;
+
+  const [rows] = await pool.query(query, [days]);
+  return rows.map(row => ({
+    author_user_id: row.author_user_id,
+    author_name: row.author_name,
+    discussion_id: String(row.discussion_id),
+    created_at: row.created_at
   }));
 }
 

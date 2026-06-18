@@ -1,18 +1,21 @@
 import 'dotenv/config';
 import fs from 'fs';
 import path from 'path';
-import { fetchRecentPosts, closePool } from './db/posts.js';
+import { fetchRecentPosts, fetchContributorActivity, closePool } from './db/posts.js';
 import { extractDigest } from './llm/extract.js';
 import { renderEmail } from './email/renderer.js';
 import { sendDigestEmail, getRecipients } from './email/sender.js';
 import { withRetry, saveFallback, logError } from './utils/fallback.js';
+import { computeContributors } from './utils/contributors.js';
 
 const DRY_RUN = process.env.DRY_RUN === 'true';
 const RETRY_COUNT = 3;
 const DRY_RUN_PREVIEW_PATH = path.join(process.cwd(), 'outputs', 'digest-preview.html');
+const UNSUBSCRIBE_BASE_URL = process.env.UNSUBSCRIBE_BASE_URL || 'https://digest.community.itqan.dev';
 
 async function main() {
   console.log('=== Itqan Community Weekly Digest ===\n');
+  console.log(`  Mode: ${process.env.SEND_MODE === 'prod' ? 'PRODUCTION' : 'TEST (bakasa@gmail.com only)'}\n`);
 
   // Step 1: Fetch posts from database
   console.log('Step 1: Fetching recent posts...');
@@ -40,8 +43,7 @@ async function main() {
     digest = await withRetry(() => extractDigest(posts), RETRY_COUNT);
     console.log(`  Featured: ${digest.featured_topic?.title || 'N/A'}
   Themes: ${digest.themes?.length || 0}
-  Questions: ${digest.open_questions?.length || 0}
-  Contributors: ${digest.contributors?.length || 0}\n`);
+  Questions: ${digest.open_questions?.length || 0}\n`);
   } catch (error) {
     logError('Failed to extract insights', error);
     await saveFallback({ step: 'llm_extract', error: error.message, data: posts });
@@ -49,11 +51,22 @@ async function main() {
     process.exit(1);
   }
 
-  // Step 3: Render email
-  console.log('Step 3: Rendering email...');
-  let html;
+  // Step 2b: Compute contributors from DB (weighted, deterministic)
+  console.log('Step 2b: Computing weighted contributors from DB...');
   try {
-    html = await withRetry(() => renderEmail(digest), RETRY_COUNT);
+    const activity = await withRetry(() => fetchContributorActivity(), RETRY_COUNT);
+    digest.contributors = computeContributors(activity);
+    console.log(`  Contributors: ${digest.contributors.length}\n`);
+  } catch (error) {
+    logError('Failed to compute contributors', error);
+    digest.contributors = [];
+  }
+
+  // Step 3: Render email (shared template, __UNSUBSCRIBE_PLACEHOLDER__ left in place)
+  console.log('Step 3: Rendering email template...');
+  let templateHtml;
+  try {
+    templateHtml = await withRetry(() => renderEmail(digest), RETRY_COUNT);
     console.log('  Email rendered successfully\n');
   } catch (error) {
     logError('Failed to render email', error);
@@ -62,17 +75,18 @@ async function main() {
     process.exit(1);
   }
 
-  // Dry run mode
+  // Dry run mode — save preview with placeholder visible
   if (DRY_RUN) {
     console.log('DRY RUN: Saving HTML to outputs/digest-preview.html');
     fs.mkdirSync(path.dirname(DRY_RUN_PREVIEW_PATH), { recursive: true });
-    fs.writeFileSync(DRY_RUN_PREVIEW_PATH, html);
+    fs.writeFileSync(DRY_RUN_PREVIEW_PATH, templateHtml);
     console.log(`  Preview saved to: ${DRY_RUN_PREVIEW_PATH}`);
+    console.log('  Note: __UNSUBSCRIBE_PLACEHOLDER__ visible in preview — replaced per-recipient in live sends.');
     await closePool();
     process.exit(0);
   }
 
-  // Step 4: Get recipients
+  // Step 4: Get recipients [{email, token}]
   console.log('Step 4: Fetching recipients...');
   let recipients;
   try {
@@ -91,18 +105,25 @@ async function main() {
     process.exit(1);
   }
 
-  // Step 5: Send emails
+  // Step 5: Send emails — per-recipient with personalized unsubscribe URL
   console.log('Step 5: Sending emails...');
   try {
+    // htmlFn injects the per-recipient unsubscribe URL into the shared template
+    const htmlFn = (token) =>
+      templateHtml.replace(
+        /__UNSUBSCRIBE_PLACEHOLDER__/g,
+        `${UNSUBSCRIBE_BASE_URL}/unsubscribe?token=${token}`
+      );
+
     const result = await sendDigestEmail(
       recipients,
-      html,
+      htmlFn,
       'الملخص الأسبوعي لمجتمع إتقان'
     );
     console.log(`  Sent: ${result.sent} | Failed: ${result.failed}\n`);
   } catch (error) {
     logError('Failed to send emails', error);
-    await saveFallback({ step: 'send_email', error: error.message, data: { html, recipients } });
+    await saveFallback({ step: 'send_email', error: error.message, data: { recipients } });
     await closePool();
     process.exit(1);
   }

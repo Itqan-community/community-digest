@@ -35,6 +35,8 @@
             .mobile-padding { padding: 20px !important; }
             .mobile-text-2xl { font-size: 22px !important; }
             .mobile-font-bold { font-size: 18px !important; }
+            .mobile-stack { display: block !important; width: 100% !important; padding: 8px 0 !important; text-align: center !important; }
+            .cta-button { display: block !important; padding: 16px 24px !important; text-align: center !important; }
         }
     </style>
 </head>
@@ -58,7 +60,7 @@
                             </table>
                             <!-- Title -->
                             <h1 style="margin: 0 0 8px 0; font-size: 24px; font-weight: 700; letter-spacing: -0.02em; color: #ffffff;">
-                                <span style="white-space: nowrap;">الملخص الأسبوعي لمجتمع إتقان<span style="color: #7ba38f;">
+                                <span>الملخص الأسبوعي لمجتمع إتقان<span style="color: #7ba38f;">
                             </h1>
                             <!-- Date -->
                             <p style="margin: 0; font-size: 14px; font-weight: 300; color: rgba(240, 244, 242, 0.7);">{{todayArabic}}</p>
@@ -73,13 +75,13 @@
                     <tr>
                         <td dir="rtl" style="margin-bottom: 64px;">
                             <span dir="rtl" style="display: inline-block; background-color: #f0f4f2; color: #3d6052; font-size: 10px; font-weight: 700; padding: 4px 12px; border-radius: 9999px; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.1em; border: 1px solid rgba(123, 163, 143, 0.2);">النقاش الأكثر تفاعلاً</span>
-                            <h2 dir="rtl" style="margin: 0 0 24px 0; font-size: 30px; font-weight: 700; color: #3d6052; line-height: 1.3;">{{featured_topic.title}}</h2>
+                            <h2 dir="rtl" class="mobile-text-2xl" style="margin: 0 0 24px 0; font-size: 30px; font-weight: 700; color: #3d6052; line-height: 1.3;">{{featured_topic.title}}</h2>
                             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: rgba(240, 244, 242, 0.5); border-right: 4px solid #7ba38f; padding: 24px; border-radius: 1rem; margin-bottom: 32px;" dir="rtl">
                                 <tr>
                                     <td dir="rtl" style="color: #4b5563; font-size: 16px; line-height: 1.7;">{{featured_topic.excerpt}}</td>
                                 </tr>
                             </table>
-                            <a href="{{featured_topic.url}}" dir="rtl" style="display: inline-block; background-color: #7ba38f; color: #ffffff; font-size: 14px; font-weight: 700; padding: 16px 48px; border-radius: 1rem; text-decoration: none; box-shadow: 0 4px 14px rgba(123, 163, 143, 0.39); text-align: center;" target="_blank">
+                            <a href="{{featured_topic.url}}" dir="rtl" class="cta-button" style="display: inline-block; background-color: #7ba38f; color: #ffffff; font-size: 14px; font-weight: 700; padding: 16px 48px; border-radius: 1rem; text-decoration: none; box-shadow: 0 4px 14px rgba(123, 163, 143, 0.39); text-align: center;" target="_blank">
                                 اذهب الى النقاش
                             </a>
                         </td>
@@ -93,7 +95,7 @@
                             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 40px;" dir="rtl">
                                 <tr>
                                     <td dir="rtl">
-                                        <a href="{{this.url}}" dir="rtl" style="font-size: 20px; font-weight: 700; color: #3d6052; text-decoration: underline; text-decoration-color: #f0f4f2; text-underline-offset: 8px; display: block; margin-bottom: 8px;" target="_blank">{{this.title}}</a>
+                                        <a href="{{this.url}}" dir="rtl" class="mobile-font-bold" style="font-size: 20px; font-weight: 700; color: #3d6052; text-decoration: underline; text-decoration-color: #f0f4f2; text-underline-offset: 8px; display: block; margin-bottom: 8px;" target="_blank">{{this.title}}</a>
                                         <p dir="rtl" style="margin: 0; font-size: 14px; color: #6b7280; max-width: 400px;">{{this.description}}</p>
                                     </td>
                                 </tr>
@@ -114,7 +116,7 @@
                                         </h3>
                                         <ul dir="rtl" style="margin: 0; padding: 0; list-style: none;">
                                             {{#each open_questions}}
-                                            <li dir="rtl" style="font-size: 16px; font-weight: 500; line-height: 1.7; border-bottom: 1px solid rgba(61, 96, 82, 0.12); padding-bottom: 16px; margin-bottom: 16px; color: #3d6052;">
+                                            <li dir="rtl" class="mobile-font-bold" style="font-size: 16px; font-weight: 500; line-height: 1.7; border-bottom: 1px solid rgba(61, 96, 82, 0.12); padding-bottom: 16px; margin-bottom: 16px; color: #3d6052;">
                                                 <a href="{{this.url}}" dir="rtl" style="color: #3d6052; text-decoration: none;" target="_blank">• {{this.question}}</a>
                                             </li>
                                             {{/each}}
@@ -166,23 +168,21 @@
                         <td dir="rtl">
                             <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin: 0 auto 32px auto;">
                                 <tr>
-                                    <td style="padding: 0 40px;">
-                                        <a href="https://community.itqan.dev" dir="rtl" style="font-size: 12px; font-weight: 700; color: rgba(61, 96, 82, 0.5); text-decoration: none;" target="_blank">المجتمع</a>
+                                    <td class="mobile-stack" style="padding: 0 20px; display: inline-block; min-height: 44px; vertical-align: middle;">
+                                        <a href="https://community.itqan.dev" dir="rtl" style="font-size: 12px; font-weight: 700; color: rgba(61, 96, 82, 0.5); text-decoration: none; display: inline-block; padding: 12px 0;" target="_blank">المجتمع</a>
                                     </td>
-                                    <td style="padding: 0 40px;">
-                                    <a href="https://community.itqan.dev/d/486" dir="rtl" style="font-size: 12px; font-weight: 700; color: rgba(61, 96, 82, 0.5); text-decoration: none;" target="_blank">شاركنا ملاحظاتك هنا</a>
+                                    <td class="mobile-stack" style="padding: 0 20px; display: inline-block; min-height: 44px; vertical-align: middle;">
+                                        <a href="https://community.itqan.dev/d/486" dir="rtl" style="font-size: 12px; font-weight: 700; color: rgba(61, 96, 82, 0.5); text-decoration: none; display: inline-block; padding: 12px 0;" target="_blank">شاركنا ملاحظاتك هنا</a>
                                     </td>
-                                    <!-- <td style="padding: 0 40px;">
-                                        <a href="#" dir="rtl" style="font-size: 12px; font-weight: 700; color: rgba(61, 96, 82, 0.5); text-decoration: none;">الإشعارات</a>
-                                    </td>
-                                    <td style="padding: 0 40px;">
-                                        <a href="#" dir="rtl" style="font-size: 12px; font-weight: 700; color: rgba(61, 96, 82, 0.5); text-decoration: none;">عن إتقان</a>
-                                    </td> -->
                                 </tr>
                             </table>
                             <div style="opacity: 0.4; -webkit-filter: grayscale(100%); filter: grayscale(100%); display: inline-flex; align-items: center;">
                                 <span style="font-size: 10px; font-weight: 700; letter-spacing: 0.4em; color: #3d6052; text-transform: uppercase;">Itqan Community 2026</span>
                             </div>
+                            <p style="margin: 16px 0 0 0; font-size: 11px; color: rgba(61, 96, 82, 0.5);">
+                                لا ترغب في استلام هذه الرسائل؟
+                                <a href="__UNSUBSCRIBE_PLACEHOLDER__" style="color: rgba(61, 96, 82, 0.7); text-decoration: underline;" target="_blank">إلغاء الاشتراك</a>
+                            </p>
                         </td>
                     </tr>
                 </table>

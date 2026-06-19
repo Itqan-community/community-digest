@@ -26,11 +26,13 @@ jobs:
           host: 134.122.104.215
           username: root
           key: ${{ secrets.DROPLET_SSH_KEY }}
+          envs: RESEND_WEBHOOK_SECRET
           script: |
             cd /opt/community-digest
             git fetch origin
             git reset --hard origin/main
             npm ci --omit=dev
+            sed -i "s|^RESEND_WEBHOOK_SECRET=.*|RESEND_WEBHOOK_SECRET=$RESEND_WEBHOOK_SECRET|" .env
             pm2 restart digest-server --update-env
             sleep 3
             curl -sf http://localhost:3000/health || (pm2 logs digest-server --lines 20 && exit 1)

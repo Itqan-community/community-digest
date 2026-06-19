@@ -49,10 +49,10 @@ export async function ensureSubscriberExists(email, userId = null) {
  */
 export async function fetchSubscribedRecipients() {
   if (process.env.SEND_MODE !== 'prod') {
-    const email = process.env.TEST_RECIPIENT_EMAIL;
-    if (!email) throw new Error('TEST_RECIPIENT_EMAIL not set');
-    const row = await ensureSubscriberExists(email);
-    return [{ email: row.email, token: row.token }];
+    const emails = (process.env.TEST_RECIPIENT_EMAIL || '').split(',').map(e => e.trim()).filter(Boolean);
+    if (!emails.length) throw new Error('TEST_RECIPIENT_EMAIL not set');
+    const rows = await Promise.all(emails.map(e => ensureSubscriberExists(e)));
+    return rows.map(r => ({ email: r.email, token: r.token }));
   }
 
   const pool = getPool();

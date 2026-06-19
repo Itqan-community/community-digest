@@ -83,6 +83,23 @@ describe('subscribers', () => {
     expect(hasFullListQuery).toBe(false);
   });
 
+  it('fetchSubscribedRecipients_multipleTestEmails_returnsAllRecipients', async () => {
+    vi.stubEnv('SEND_MODE', 'test');
+    vi.stubEnv('TEST_RECIPIENT_EMAIL', 'bakasa@gmail.com,m.tareq@itqan.dev');
+
+    // Promise.all fires both INSERTs before either SELECT
+    mockQuery.mockResolvedValueOnce([{ affectedRows: 1 }]); // bakasa INSERT
+    mockQuery.mockResolvedValueOnce([{ affectedRows: 1 }]); // tareq INSERT
+    mockQuery.mockResolvedValueOnce([[{ email: 'bakasa@gmail.com', token: 'tok-1', subscribed: 1 }]]); // bakasa SELECT
+    mockQuery.mockResolvedValueOnce([[{ email: 'm.tareq@itqan.dev', token: 'tok-2', subscribed: 1 }]]); // tareq SELECT
+
+    const result = await fetchSubscribedRecipients();
+
+    expect(result).toHaveLength(2);
+    expect(result.map(r => r.email)).toContain('bakasa@gmail.com');
+    expect(result.map(r => r.email)).toContain('m.tareq@itqan.dev');
+  });
+
   it('fetchSubscribedRecipients_excludesUnsubscribed', async () => {
     vi.stubEnv('SEND_MODE', 'prod');
 

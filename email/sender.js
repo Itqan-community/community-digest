@@ -2,6 +2,7 @@ import { Resend } from 'resend';
 import fs from 'fs/promises';
 import 'dotenv/config';
 import { fetchSubscribedRecipients, ensureSubscriberExists } from '../db/subscribers.js';
+import { recordSend } from '../db/sends.js';
 
 const SENDER_ADDRESS = 'Community Digest <digest@newsletter.itqan.dev>';
 
@@ -19,15 +20,18 @@ export async function sendDigestEmail(recipients, htmlFn, subject) {
   let sent = 0;
   let failed = 0;
 
+  const runDate = new Date().toISOString().slice(0, 10);
+
   for (const recipient of recipients) {
     try {
       const html = htmlFn(recipient.token);
-      await resend.emails.send({
+      const { id: resendId } = await resend.emails.send({
         from: SENDER_ADDRESS,
         to: [recipient.email],
         subject,
         html
       });
+      await recordSend(recipient.email, resendId, runDate);
       sent++;
     } catch (error) {
       failed++;

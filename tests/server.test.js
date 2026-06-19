@@ -9,9 +9,15 @@ vi.mock('../db/subscribers.js', () => ({
   setSubscribedByEmail: vi.fn()
 }));
 
+vi.mock('../db/sends.js', () => ({
+  recordDelivered: vi.fn(),
+  recordOpened: vi.fn()
+}));
+
 vi.mock('dotenv/config', () => ({}));
 
 import { getSubscriberByToken, setSubscribed, setSubscribedByEmail } from '../db/subscribers.js';
+import { recordDelivered, recordOpened } from '../db/sends.js';
 import { createServer } from '../server.js';
 
 const TEST_WEBHOOK_SECRET = 'whsec_dGVzdHNlY3JldGtleWZvcnRlc3Rpbmc='; // base64("testsecretkeyffortesting")
@@ -162,6 +168,24 @@ describe('server', () => {
       const { status } = await post('/resend-webhook', bodyStr, svixHeaders(bodyStr));
       expect(status).toBe(200);
       expect(setSubscribedByEmail).not.toHaveBeenCalled();
+    });
+
+    it('resendWebhook_delivered_callsRecordDelivered', async () => {
+      recordDelivered.mockResolvedValue(1);
+      const payload = { type: 'email.delivered', data: { email_id: 'resend-abc-123', to: [{ email: 'x@x.com' }] } };
+      const bodyStr = JSON.stringify(payload);
+      const { status } = await post('/resend-webhook', bodyStr, svixHeaders(bodyStr));
+      expect(status).toBe(200);
+      expect(recordDelivered).toHaveBeenCalledWith('resend-abc-123');
+    });
+
+    it('resendWebhook_opened_callsRecordOpened', async () => {
+      recordOpened.mockResolvedValue(1);
+      const payload = { type: 'email.opened', data: { email_id: 'resend-abc-123', to: [{ email: 'x@x.com' }] } };
+      const bodyStr = JSON.stringify(payload);
+      const { status } = await post('/resend-webhook', bodyStr, svixHeaders(bodyStr));
+      expect(status).toBe(200);
+      expect(recordOpened).toHaveBeenCalledWith('resend-abc-123');
     });
   });
 });

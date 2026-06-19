@@ -1,11 +1,15 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { sendDigestEmail } from '../../email/sender.js';
 
-const mockSend = vi.fn();
+const hoisted = vi.hoisted(() => ({
+  mockSend: vi.fn(),
+  mockRecordSend: vi.fn()
+}));
+
 vi.mock('resend', () => ({
-  Resend: vi.fn(function () {
-    this.emails = { send: mockSend };
-  })
+  Resend: class {
+    constructor() { this.emails = { send: hoisted.mockSend }; }
+  }
 }));
 
 vi.mock('../../db/subscribers.js', () => ({
@@ -13,11 +17,18 @@ vi.mock('../../db/subscribers.js', () => ({
   ensureSubscriberExists: vi.fn()
 }));
 
+vi.mock('../../db/sends.js', () => ({
+  recordSend: hoisted.mockRecordSend
+}));
+
+const { mockSend, mockRecordSend } = hoisted;
+
 describe('sendDigestEmail', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.stubEnv('RESEND_API_KEY', 're_test');
     vi.stubEnv('SEND_MODE', 'test');
+    mockRecordSend.mockResolvedValue(1);
   });
 
   afterEach(() => {
@@ -63,6 +74,23 @@ describe('sendDigestEmail', () => {
     // Ensure tokens don't cross
     expect(calls[0][0].html).not.toContain('TOKEN_B');
     expect(calls[1][0].html).not.toContain('TOKEN_A');
+  });
+
+  it('sendDigestEmail_recordsSendIdPerRecipient', async () => {
+    mockSend
+      .mockResolvedValueOnce({ id: 'msg-1' })
+      .mockResolvedValueOnce({ id: 'msg-2' });
+
+    const recipients = [
+      { email: 'a@test.com', token: 'tok-a' },
+      { email: 'b@test.com', token: 'tok-b' }
+    ];
+
+    await sendDigestEmail(recipients, (t) => `<html>${t}</html>`, 'Subject');
+
+    expect(mockRecordSend).toHaveBeenCalledTimes(2);
+    expect(mockRecordSend).toHaveBeenCalledWith('a@test.com', 'msg-1', expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/));
+    expect(mockRecordSend).toHaveBeenCalledWith('b@test.com', 'msg-2', expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/));
   });
 
   it('sendDigestEmail_oneFailureDoesNotAbortRest', async () => {

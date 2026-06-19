@@ -3,6 +3,7 @@ import { URL } from 'url';
 import crypto from 'crypto';
 import 'dotenv/config';
 import { getSubscriberByToken, setSubscribed, setSubscribedByEmail } from './db/subscribers.js';
+import { recordDelivered, recordOpened } from './db/sends.js';
 
 const BRAND = '#3d6052';
 const SAGE = '#7ba38f';
@@ -155,13 +156,16 @@ export function createServer() {
 
       const event = JSON.parse(rawBody.toString());
       const email = event?.data?.to?.[0]?.email;
+      const resendId = event?.data?.email_id;
 
-      if (email) {
-        if (event.type === 'email.bounced' && event?.data?.bounce?.type === 'hard') {
-          await setSubscribedByEmail(email, 0);
-        } else if (event.type === 'email.complained') {
-          await setSubscribedByEmail(email, 0);
-        }
+      if (event.type === 'email.bounced' && event?.data?.bounce?.type === 'hard') {
+        if (email) await setSubscribedByEmail(email, 0);
+      } else if (event.type === 'email.complained') {
+        if (email) await setSubscribedByEmail(email, 0);
+      } else if (event.type === 'email.delivered') {
+        if (resendId) await recordDelivered(resendId);
+      } else if (event.type === 'email.opened') {
+        if (resendId) await recordOpened(resendId);
       }
 
       res.writeHead(200, { 'Content-Type': 'text/plain' });

@@ -15,7 +15,8 @@ const UNSUBSCRIBE_BASE_URL = process.env.UNSUBSCRIBE_BASE_URL || 'https://digest
 
 async function main() {
   console.log('=== Itqan Community Weekly Digest ===\n');
-  console.log(`  Mode: ${process.env.SEND_MODE === 'prod' ? 'PRODUCTION' : 'TEST (bakasa@gmail.com only)'}\n`);
+  const testRecipients = process.env.TEST_RECIPIENT_EMAIL || '';
+  console.log(`  Mode: ${process.env.SEND_MODE === 'prod' ? 'PRODUCTION' : `TEST (${testRecipients})`}\n`);
 
   // Step 1: Fetch posts from database
   console.log('Step 1: Fetching recent posts...');

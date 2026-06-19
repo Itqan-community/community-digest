@@ -1,3 +1,5 @@
+import fs from 'fs';
+import path from 'path';
 import 'dotenv/config';
 
 const ARABIC_DAYS = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
@@ -90,8 +92,6 @@ async function loadProvider() {
 }
 
 function parseResponse(text) {
-  // Providers (gemini, openai) now parse JSON internally and return objects.
-  // If we get an object back, pass it through; otherwise treat as string.
   if (typeof text !== 'string') {
     return text;
   }
@@ -105,9 +105,17 @@ function parseResponse(text) {
 }
 
 export async function extractDigest(posts) {
+  const cacheKey = new Date().toISOString().slice(0, 10);
+  const cachePath = path.join(process.cwd(), 'outputs', `llm-cache-${cacheKey}.json`);
+
+  if (fs.existsSync(cachePath)) {
+    console.log('  [cache hit] Reusing LLM result from earlier today');
+    const cached = JSON.parse(fs.readFileSync(cachePath, 'utf8'));
+    return { digest: cached.digest, model: cached.model, cached: true };
+  }
+
   const extractInsights = await loadProvider();
 
-  // Compute the date window in Node.js (posts are ordered DESC, so last = oldest)
   const oldestPost = posts.length > 0 ? posts[posts.length - 1] : null;
   const days = oldestPost
     ? Math.max(1, Math.round((Date.now() - new Date(oldestPost.created_at).getTime()) / 86400000))
@@ -123,11 +131,13 @@ export async function extractDigest(posts) {
     .replace('{{DATE_TO}}', dateTo)
     + formatPostsForPrompt(posts);
 
-  const rawText = await extractInsights(prompt);
-  const digest = parseResponse(rawText);
+  const { data, model } = await extractInsights(prompt);
+  const digest = parseResponse(data);
 
-  // Override window_label with the computed date to ensure correctness
   digest.window_label = `ملخص الأسبوع: ${dateFrom} - ${dateTo}`;
 
-  return digest;
+  fs.mkdirSync(path.dirname(cachePath), { recursive: true });
+  fs.writeFileSync(cachePath, JSON.stringify({ digest, model }, null, 2));
+
+  return { digest, model, cached: false };
 }

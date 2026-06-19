@@ -27,7 +27,7 @@ export async function extractInsights(prompt) {
     }
 
     try {
-      return JSON.parse(text);
+      return { data: JSON.parse(text), model };
     } catch (e) {
       console.error('Failed to parse LLM response as JSON:', text.substring(0, 200));
       throw new Error('LLM returned invalid JSON');

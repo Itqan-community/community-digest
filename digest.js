@@ -11,6 +11,7 @@ import { computeContributors } from './utils/contributors.js';
 const DRY_RUN = process.env.DRY_RUN === 'true';
 const RETRY_COUNT = 3;
 const DRY_RUN_PREVIEW_PATH = path.join(process.cwd(), 'outputs', 'digest-preview.html');
+const AUDIT_LOG_PATH = path.join(process.cwd(), 'outputs', 'audit.jsonl');
 const UNSUBSCRIBE_BASE_URL = process.env.UNSUBSCRIBE_BASE_URL || 'https://digest.community.itqan.dev';
 
 async function main() {
@@ -40,11 +41,17 @@ async function main() {
   // Step 2: Extract insights via LLM
   console.log('Step 2: Extracting insights via LLM...');
   let digest;
+  let llmModel = 'unknown';
+  let llmCached = false;
   try {
-    digest = await withRetry(() => extractDigest(posts), RETRY_COUNT);
+    const extracted = await withRetry(() => extractDigest(posts), RETRY_COUNT);
+    digest = extracted.digest;
+    llmModel = extracted.model;
+    llmCached = extracted.cached;
     console.log(`  Featured: ${digest.featured_topic?.title || 'N/A'}
   Themes: ${digest.themes?.length || 0}
-  Questions: ${digest.open_questions?.length || 0}\n`);
+  Questions: ${digest.open_questions?.length || 0}
+  Model: ${llmModel}${llmCached ? ' (cached)' : ''}\n`);
   } catch (error) {
     logError('Failed to extract insights', error);
     await saveFallback({ step: 'llm_extract', error: error.message, data: posts });
@@ -108,26 +115,43 @@ async function main() {
 
   // Step 5: Send emails — per-recipient with personalized unsubscribe URL
   console.log('Step 5: Sending emails...');
+  let sendResult = { sent: 0, failed: 0 };
   try {
-    // htmlFn injects the per-recipient unsubscribe URL into the shared template
     const htmlFn = (token) =>
       templateHtml.replace(
         /__UNSUBSCRIBE_PLACEHOLDER__/g,
         `${UNSUBSCRIBE_BASE_URL}/unsubscribe?token=${token}`
       );
 
-    const result = await sendDigestEmail(
+    sendResult = await sendDigestEmail(
       recipients,
       htmlFn,
       'الملخص الأسبوعي لمجتمع إتقان'
     );
-    console.log(`  Sent: ${result.sent} | Failed: ${result.failed}\n`);
+    console.log(`  Sent: ${sendResult.sent} | Failed: ${sendResult.failed}\n`);
   } catch (error) {
     logError('Failed to send emails', error);
     await saveFallback({ step: 'send_email', error: error.message, data: { recipients } });
     await closePool();
     process.exit(1);
   }
+
+  const auditEntry = {
+    timestamp: new Date().toISOString(),
+    mode: process.env.SEND_MODE || 'test',
+    posts_count: posts.length,
+    llm_model: llmModel,
+    llm_cached: llmCached,
+    featured_topic: digest.featured_topic?.title || null,
+    themes_count: digest.themes?.length || 0,
+    questions_count: digest.open_questions?.length || 0,
+    contributors_count: digest.contributors?.length || 0,
+    recipients_count: recipients.length,
+    sent: sendResult.sent,
+    failed: sendResult.failed
+  };
+  fs.mkdirSync(path.dirname(AUDIT_LOG_PATH), { recursive: true });
+  fs.appendFileSync(AUDIT_LOG_PATH, JSON.stringify(auditEntry) + '\n');
 
   await closePool();
   console.log('=== Digest complete ===');

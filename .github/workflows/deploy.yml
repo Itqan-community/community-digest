@@ -32,7 +32,11 @@ jobs:
             git fetch origin
             git reset --hard origin/main
             npm ci --omit=dev
-            sed -i "s|^RESEND_WEBHOOK_SECRET=.*|RESEND_WEBHOOK_SECRET=$RESEND_WEBHOOK_SECRET|" .env
+            if grep -q "^RESEND_WEBHOOK_SECRET=" .env; then
+              sed -i "s|^RESEND_WEBHOOK_SECRET=.*|RESEND_WEBHOOK_SECRET=$RESEND_WEBHOOK_SECRET|" .env
+            else
+              echo "RESEND_WEBHOOK_SECRET=$RESEND_WEBHOOK_SECRET" >> .env
+            fi
             pm2 restart digest-server --update-env
             sleep 3
             curl -sf http://localhost:3000/health || (pm2 logs digest-server --lines 20 && exit 1)

@@ -1,7 +1,8 @@
 import http from 'http';
 import { URL } from 'url';
+import crypto from 'crypto';
 import 'dotenv/config';
-import { getSubscriberByToken, setSubscribed } from './db/subscribers.js';
+import { getSubscriberByToken, setSubscribed, setSubscribedByEmail } from './db/subscribers.js';
 
 const BRAND = '#3d6052';
 const SAGE = '#7ba38f';
@@ -77,6 +78,35 @@ function notFoundPage() {
   );
 }
 
+function readBody(req) {
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    req.on('data', chunk => chunks.push(chunk));
+    req.on('end', () => resolve(Buffer.concat(chunks)));
+    req.on('error', reject);
+  });
+}
+
+function verifyWebhookSignature(rawBody, headers, secret) {
+  const msgId = headers['svix-id'];
+  const timestamp = headers['svix-timestamp'];
+  const sigHeader = headers['svix-signature'];
+
+  if (!msgId || !timestamp || !sigHeader) return false;
+
+  const tsNum = parseInt(timestamp, 10);
+  if (Math.abs(Date.now() / 1000 - tsNum) > 300) return false;
+
+  const key = Buffer.from(secret.replace('whsec_', ''), 'base64');
+  const toSign = `${msgId}.${timestamp}.${rawBody}`;
+  const computed = crypto.createHmac('sha256', key).update(toSign).digest('base64');
+
+  return sigHeader.split(' ').some(part => {
+    const [, sig] = part.split(',');
+    return sig === computed;
+  });
+}
+
 export function createServer() {
   return http.createServer(async (req, res) => {
     const { pathname, searchParams } = new URL(req.url, 'http://localhost');
@@ -112,6 +142,30 @@ export function createServer() {
       await setSubscribed(token, 1);
       res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
       return res.end(resubscribePage());
+    }
+
+    if (pathname === '/resend-webhook' && req.method === 'POST') {
+      const rawBody = await readBody(req);
+      const secret = process.env.RESEND_WEBHOOK_SECRET;
+
+      if (!secret || !verifyWebhookSignature(rawBody, req.headers, secret)) {
+        res.writeHead(401, { 'Content-Type': 'text/plain' });
+        return res.end('unauthorized');
+      }
+
+      const event = JSON.parse(rawBody.toString());
+      const email = event?.data?.to?.[0]?.email;
+
+      if (email) {
+        if (event.type === 'email.bounced' && event?.data?.bounce?.type === 'hard') {
+          await setSubscribedByEmail(email, 0);
+        } else if (event.type === 'email.complained') {
+          await setSubscribedByEmail(email, 0);
+        }
+      }
+
+      res.writeHead(200, { 'Content-Type': 'text/plain' });
+      return res.end('ok');
     }
 
     res.writeHead(404, { 'Content-Type': 'text/plain' });

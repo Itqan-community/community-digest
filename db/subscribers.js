@@ -99,3 +99,17 @@ export async function setSubscribed(token, subscribed) {
   );
   return result.affectedRows;
 }
+
+/**
+ * Set the subscribed flag by email address.
+ * Used by bounce/complaint webhooks where the token is not available.
+ * Returns the number of affected rows (0 = email not found).
+ */
+export async function setSubscribedByEmail(email, subscribed) {
+  const pool = getPool();
+  const [result] = await pool.query(
+    'UPDATE digest_subscribers SET subscribed = ? WHERE email = ?',
+    [subscribed, email]
+  );
+  return result.affectedRows;
+}

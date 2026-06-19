@@ -71,7 +71,7 @@ pm2 startup systemd -u root --hp /root | tail -1 | bash || true
 pm2 save
 
 echo "--- Cron job ---"
-CRON_LINE="0 9 * * 1 cd $APP_DIR && /usr/bin/node digest.js >> $LOG_DIR/cron.log 2>&1"
+CRON_LINE="0 13 * * 5 cd $APP_DIR && /usr/bin/node digest.js >> $LOG_DIR/cron.log 2>&1"
 # grep -v on empty crontab returns exit 1 — || true prevents pipefail killing the script
 ( crontab -l 2>/dev/null | grep -v "community-digest" || true; echo "$CRON_LINE" ) | crontab -
 echo "  Cron: $CRON_LINE"

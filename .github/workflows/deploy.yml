@@ -28,8 +28,9 @@ jobs:
           key: ${{ secrets.DROPLET_SSH_KEY }}
           script: |
             cd /opt/community-digest
+            git checkout main
             git pull origin main
             npm ci --omit=dev
-            pm2 restart digest-server
-            sleep 2
+            pm2 restart digest-server --update-env
+            sleep 3
             curl -sf http://localhost:3000/health || (pm2 logs digest-server --lines 20 && exit 1)

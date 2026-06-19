@@ -173,8 +173,8 @@ export function createServer() {
   });
 }
 
-// Only start when run directly (not imported by tests)
-if (process.argv[1] === new URL(import.meta.url).pathname) {
+// Start when run directly (argv check) or when PM2/production spawns us (DIGEST_SERVER=1)
+if (process.env.DIGEST_SERVER === '1' || process.argv[1] === new URL(import.meta.url).pathname) {
   const port = parseInt(process.env.PORT || '3000');
   const server = createServer();
   server.listen(port, () => {

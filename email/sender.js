@@ -54,17 +54,31 @@ export async function sendCampaign(templateHtml, subject) {
   const content = templateHtml.replace(/__UNSUBSCRIBE_PLACEHOLDER__/g, '{$unsubscribe}');
   const campaignName = `${isProd ? '' : '[TEST] '}Weekly Digest - ${runDate}`;
 
-  const { data: campaign } = await mlFetch('POST', '/campaigns', {
-    name: campaignName,
-    type: 'regular',
-    emails: [{
-      subject,
-      from: process.env.FROM_EMAIL || 'tools@itqan.dev',
-      from_name: 'مجتمع إتقان',
-      content
-    }],
-    groups: [groupId]
-  });
+  // Idempotency: reuse existing draft campaign with same name to prevent duplicate sends on retry
+  const { data: existingCampaigns } = await mlFetch('GET', `/campaigns?filter[name]=${encodeURIComponent(campaignName)}&limit=10`);
+  const existing = existingCampaigns.find(c => c.name === campaignName);
+
+  let campaign;
+  if (existing && existing.status === 'sent') {
+    console.log(`  Campaign "${campaignName}" already sent (id: ${existing.id}) — skipping`);
+    return { campaignId: existing.id, recipientCount: emails.length };
+  } else if (existing) {
+    campaign = existing;
+    console.log(`  Reusing existing campaign "${campaignName}" (id: ${campaign.id}, status: ${campaign.status})`);
+  } else {
+    const { data: created } = await mlFetch('POST', '/campaigns', {
+      name: campaignName,
+      type: 'regular',
+      emails: [{
+        subject,
+        from: process.env.FROM_EMAIL || 'tools@itqan.dev',
+        from_name: 'مجتمع إتقان',
+        content
+      }],
+      groups: [groupId]
+    });
+    campaign = created;
+  }
 
   await mlFetch('POST', `/campaigns/${campaign.id}/schedule`, { delivery: 'instant' });
   console.log(`  Campaign "${campaignName}" sent (id: ${campaign.id})`);

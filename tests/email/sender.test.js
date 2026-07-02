@@ -32,13 +32,14 @@ describe('sendCampaign', () => {
       { email: 'bakasa@gmail.com', token: 'tok-a' }
     ]);
 
-    // Default ML API sequence: list groups → create group → POST /subscribers → create campaign → send
+    // Default ML API sequence: GET /groups → POST /groups → POST /subscribers → GET /campaigns (none) → POST /campaigns → POST /schedule
     mockFetch
-      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ data: [] }) })
-      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ data: { id: 'grp-1', name: 'staging-community-digest' } }) })
-      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ data: { id: 'sub-1', email: 'bakasa@gmail.com' } }) })
-      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ data: { id: 'camp-1', name: '[TEST] Weekly Digest - 2026-07-01' } }) })
-      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ data: {} }) }); // POST /campaigns/camp-1/schedule
+      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ data: [] }) })                                                                             // GET /groups (empty)
+      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ data: { id: 'grp-1', name: 'staging-community-digest' } }) })                             // POST /groups
+      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ data: { id: 'sub-1', email: 'bakasa@gmail.com' } }) })                                    // POST /subscribers
+      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ data: [] }) })                                                                             // GET /campaigns (no existing)
+      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ data: { id: 'camp-1', name: '[TEST] Weekly Digest - 2026-07-01', status: 'draft' } }) })  // POST /campaigns
+      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ data: {} }) });                                                                            // POST /schedule
   });
 
   afterEach(() => {
@@ -56,14 +57,15 @@ describe('sendCampaign', () => {
   it('sendCampaign_reusesExistingGroup', async () => {
     mockFetch.mockReset();
     mockFetch
-      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ data: [{ id: 'grp-99', name: 'staging-community-digest' }] }) })
-      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ data: { id: 'sub-1' } }) })
-      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ data: { id: 'camp-1' } }) })
-      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({}) });
+      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ data: [{ id: 'grp-99', name: 'staging-community-digest' }] }) }) // GET /groups
+      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ data: { id: 'sub-1' } }) })                                      // POST /subscribers
+      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ data: [] }) })                                                    // GET /campaigns (none)
+      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ data: { id: 'camp-1', status: 'draft' } }) })                    // POST /campaigns
+      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({}) });                                                             // POST /schedule
 
     await sendCampaign('<html>test</html>', 'Subject');
 
-    expect(mockFetch).toHaveBeenCalledTimes(4);
+    expect(mockFetch).toHaveBeenCalledTimes(5);
   });
 
   it('sendCampaign_replacesUnsubscribePlaceholder', async () => {
@@ -102,5 +104,40 @@ describe('sendCampaign', () => {
       .mockResolvedValueOnce({ ok: false, json: () => Promise.resolve({ message: 'Unauthorized', status: 401 }) });
 
     await expect(sendCampaign('<html>test</html>', 'Subject')).rejects.toThrow('401');
+  });
+
+  it('sendCampaign_reusesExistingCampaignOnRetry', async () => {
+    // Simulates: campaign created, /schedule blips, retry fires
+    // Second attempt must NOT create a second campaign
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-07-04T10:00:00Z'));
+    mockFetch.mockReset();
+    // Code order: GET /groups → POST /subscribers → GET /campaigns → POST /campaigns → POST /schedule
+    mockFetch
+      // attempt 1
+      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ data: [{ id: 'grp-1', name: 'staging-community-digest' }] }) }) // GET /groups
+      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ data: { id: 'sub-1' } }) })                                      // POST /subscribers
+      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ data: [] }) })                                                    // GET /campaigns (none)
+      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ data: { id: 'camp-1', name: '[TEST] Weekly Digest - 2026-07-04', status: 'draft' } }) }) // POST /campaigns
+      .mockRejectedValueOnce(new Error('network blip'))                                                                                   // POST /schedule → fails
+      // attempt 2: finds existing campaign, skips POST /campaigns
+      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ data: [{ id: 'grp-1', name: 'staging-community-digest' }] }) }) // GET /groups
+      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ data: { id: 'sub-1' } }) })                                      // POST /subscribers
+      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ data: [{ id: 'camp-1', name: '[TEST] Weekly Digest - 2026-07-04', status: 'draft' }] }) }) // GET /campaigns (finds existing)
+      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ data: {} }) });                                                   // POST /schedule
+
+    // withRetry wrapper
+    let result;
+    for (let i = 1; i <= 3; i++) {
+      try { result = await sendCampaign('<html>test</html>', 'Subject'); break; }
+      catch (_) { /* retry */ }
+    }
+
+    const campaignCreateCalls = mockFetch.mock.calls.filter(c => {
+      try { return JSON.parse(c[1]?.body)?.type === 'regular'; } catch { return false; }
+    });
+    expect(campaignCreateCalls).toHaveLength(1); // only created once across both attempts
+    expect(result.campaignId).toBe('camp-1');
+    vi.useRealTimers();
   });
 });

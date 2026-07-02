@@ -93,12 +93,12 @@ async function main() {
     process.exit(0);
   }
 
-  // Step 4+5: Sync subscribers to MailerLite group and send campaign
-  console.log('Step 4: Syncing subscribers and sending campaign...');
-  let campaignResult = { campaignId: null, recipientCount: 0 };
+  // Step 4: Send campaign via MailerLite (ML owns the subscriber list)
+  console.log('Step 4: Sending campaign...');
+  let campaignResult = { campaignId: null, recipientCount: null };
   try {
     campaignResult = await withRetry(() => sendCampaign(templateHtml, 'الملخص الأسبوعي لمجتمع إتقان'), RETRY_COUNT);
-    console.log(`  Campaign sent | Recipients: ${campaignResult.recipientCount} | ID: ${campaignResult.campaignId}\n`);
+    console.log(`  Campaign sent | ID: ${campaignResult.campaignId}\n`);
   } catch (error) {
     logError('Failed to send campaign', error);
     await saveFallback({ step: 'send_campaign', error: error.message });

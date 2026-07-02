@@ -32,17 +32,15 @@ jobs:
             git fetch origin
             git reset --hard origin/main
             npm ci --omit=dev
-            python3 -c "
-import re, os
-content = open('.env').read()
-def upsert(content, key, val):
-    if key + '=' in content:
-        return re.sub(r'^' + key + r'=.*$', key + '=' + val, content, flags=re.MULTILINE)
-    return content + '\n' + key + '=' + val
-content = upsert(content, 'MAILERLITE_API_KEY', os.environ['MAILERLITE_API_KEY'])
-content = upsert(content, 'FROM_EMAIL', 'digest@newsletter.itqan.dev')
-open('.env', 'w').write(content)
-"
+            python3 << 'PYEOF'
+            import re, os
+            def upsert(c, k, v):
+                return re.sub(r'^' + k + r'=.*$', k + '=' + v, c, flags=re.MULTILINE) if k + '=' in c else c + '\n' + k + '=' + v
+            c = open('/opt/community-digest/.env').read()
+            c = upsert(c, 'MAILERLITE_API_KEY', os.environ['MAILERLITE_API_KEY'])
+            c = upsert(c, 'FROM_EMAIL', 'digest@newsletter.itqan.dev')
+            open('/opt/community-digest/.env', 'w').write(c)
+            PYEOF
             pm2 restart digest-server --update-env
             sleep 3
             curl -sf http://localhost:3000/health || (pm2 logs digest-server --lines 20 && exit 1)

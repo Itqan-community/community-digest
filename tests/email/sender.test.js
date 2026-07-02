@@ -37,7 +37,7 @@ describe('sendCampaign', () => {
       .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ data: [] }) })                                                                             // GET /groups (empty)
       .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ data: { id: 'grp-1', name: 'staging-community-digest' } }) })                             // POST /groups
       .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ data: { id: 'sub-1', email: 'bakasa@gmail.com' } }) })                                    // POST /subscribers
-      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ data: [] }) })                                                                             // GET /campaigns (no existing)
+      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ data: [] }) })                                                                             // GET /campaigns?filter[status]=draft (none)
       .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ data: { id: 'camp-1', name: '[TEST] Weekly Digest - 2026-07-01', status: 'draft' } }) })  // POST /campaigns
       .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ data: {} }) });                                                                            // POST /schedule
   });

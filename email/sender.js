@@ -55,7 +55,7 @@ export async function sendCampaign(templateHtml, subject) {
   const campaignName = `${isProd ? '' : '[TEST] '}Weekly Digest - ${runDate}`;
 
   // Idempotency: reuse existing draft campaign with same name to prevent duplicate sends on retry
-  const { data: existingCampaigns } = await mlFetch('GET', `/campaigns?filter[name]=${encodeURIComponent(campaignName)}&limit=10`);
+  const { data: existingCampaigns } = await mlFetch('GET', `/campaigns?filter[status]=draft&limit=100`);
   const existing = existingCampaigns.find(c => c.name === campaignName);
 
   let campaign;

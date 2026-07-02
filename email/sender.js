@@ -1,54 +1,73 @@
 import 'dotenv/config';
 import { fetchSubscribedRecipients } from '../db/subscribers.js';
 
-const MS_API = 'https://api.mailersend.com/v1';
-const SEND_CONCURRENCY = 20;
+const ML_API = 'https://connect.mailerlite.com/api';
+const PROD_GROUP = 'community-digest';
+const TEST_GROUP = 'staging-community-digest';
+
+async function mlFetch(method, path, body) {
+  const res = await fetch(`${ML_API}${path}`, {
+    method,
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${process.env.MAILERLITE_API_KEY}`
+    },
+    ...(body !== undefined ? { body: JSON.stringify(body) } : {})
+  });
+  const json = await res.json();
+  if (!res.ok) throw new Error(JSON.stringify(json));
+  return json;
+}
+
+async function ensureGroup(name) {
+  const { data: groups } = await mlFetch('GET', '/groups?limit=100');
+  const found = groups.find(g => g.name === name);
+  if (found) return found.id;
+  const { data: created } = await mlFetch('POST', '/groups', { name });
+  console.log(`  Created ML group "${name}" (id: ${created.id})`);
+  return created.id;
+}
+
+const SYNC_CONCURRENCY = 20;
+
+async function syncToGroup(emails, groupId) {
+  for (let i = 0; i < emails.length; i += SYNC_CONCURRENCY) {
+    const batch = emails.slice(i, i + SYNC_CONCURRENCY);
+    await Promise.all(batch.map(({ email }) =>
+      mlFetch('POST', '/subscribers', { email, groups: [groupId] })
+    ));
+  }
+}
 
 export async function sendCampaign(templateHtml, subject) {
-  const baseUrl = process.env.UNSUBSCRIBE_BASE_URL || 'https://digest.itqan.dev';
+  const isProd = process.env.SEND_MODE === 'prod';
+  const groupName = isProd ? PROD_GROUP : TEST_GROUP;
+  const runDate = new Date().toISOString().slice(0, 10);
+  const groupId = await ensureGroup(groupName);
+
   const recipients = await fetchSubscribedRecipients();
+  const emails = recipients.map(r => ({ email: r.email }));
+  console.log(`  Syncing ${emails.length} subscriber(s) to ML group "${groupName}"...`);
+  await syncToGroup(emails, groupId);
+  console.log('  Sync complete.\n');
 
-  console.log(`  Sending to ${recipients.length} recipient(s)...`);
+  const content = templateHtml.replace(/__UNSUBSCRIBE_PLACEHOLDER__/g, '{$unsubscribe}');
+  const campaignName = `${isProd ? '' : '[TEST] '}Weekly Digest - ${runDate}`;
 
-  let sent = 0;
-  const failures = [];
+  const { data: campaign } = await mlFetch('POST', '/campaigns', {
+    name: campaignName,
+    type: 'regular',
+    emails: [{
+      subject,
+      from: process.env.FROM_EMAIL || 'tools@itqan.dev',
+      from_name: 'مجتمع إتقان',
+      content
+    }],
+    groups: [groupId]
+  });
 
-  for (let i = 0; i < recipients.length; i += SEND_CONCURRENCY) {
-    const batch = recipients.slice(i, i + SEND_CONCURRENCY);
-    await Promise.all(batch.map(async ({ email, token }) => {
-      const html = templateHtml.replace(
-        /__UNSUBSCRIBE_PLACEHOLDER__/g,
-        `${baseUrl}/unsubscribe?token=${token}`
-      );
-      const res = await fetch(`${MS_API}/email`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.MAILERSEND_API_KEY}`
-        },
-        body: JSON.stringify({
-          from: { email: process.env.FROM_EMAIL || 'tools@itqan.dev', name: 'مجتمع إتقان' },
-          to: [{ email }],
-          subject,
-          html
-        })
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        failures.push({ email, error: JSON.stringify(err) });
-      } else {
-        sent++;
-      }
-    }));
-  }
+  await mlFetch('POST', `/campaigns/${campaign.id}/schedule`, { delivery: 'instant' });
+  console.log(`  Campaign "${campaignName}" sent (id: ${campaign.id})`);
 
-  if (sent === 0 && failures.length > 0) {
-    throw new Error(`All sends failed. First error: ${failures[0].error}`);
-  }
-
-  if (failures.length > 0) {
-    console.warn(`  Warning: ${failures.length} send(s) failed`);
-  }
-
-  return { sent, failed: failures.length, recipientCount: recipients.length };
+  return { campaignId: campaign.id, recipientCount: emails.length };
 }

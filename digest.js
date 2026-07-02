@@ -88,17 +88,17 @@ async function main() {
     fs.mkdirSync(path.dirname(DRY_RUN_PREVIEW_PATH), { recursive: true });
     fs.writeFileSync(DRY_RUN_PREVIEW_PATH, templateHtml);
     console.log(`  Preview saved to: ${DRY_RUN_PREVIEW_PATH}`);
-    console.log('  Note: __UNSUBSCRIBE_PLACEHOLDER__ visible in preview — replaced with per-recipient token URL in live sends.');
+    console.log('  Note: __UNSUBSCRIBE_PLACEHOLDER__ visible in preview — replaced with {$unsubscribe} in live sends.');
     await closePool();
     process.exit(0);
   }
 
-  // Step 4: Send campaign via MailerSend (per-recipient)
-  console.log('Step 4: Sending campaign...');
-  let campaignResult = { sent: 0, failed: 0, recipientCount: 0 };
+  // Step 4+5: Sync subscribers to MailerLite group and send campaign
+  console.log('Step 4: Syncing subscribers and sending campaign...');
+  let campaignResult = { campaignId: null, recipientCount: 0 };
   try {
     campaignResult = await withRetry(() => sendCampaign(templateHtml, 'الملخص الأسبوعي لمجتمع إتقان'), RETRY_COUNT);
-    console.log(`  Sent: ${campaignResult.sent}/${campaignResult.recipientCount} | Failed: ${campaignResult.failed}\n`);
+    console.log(`  Campaign sent | Recipients: ${campaignResult.recipientCount} | ID: ${campaignResult.campaignId}\n`);
   } catch (error) {
     logError('Failed to send campaign', error);
     await saveFallback({ step: 'send_campaign', error: error.message });
@@ -117,8 +117,7 @@ async function main() {
     questions_count: digest.open_questions?.length || 0,
     contributors_count: digest.contributors?.length || 0,
     recipient_count: campaignResult.recipientCount,
-    sent_count: campaignResult.sent,
-    failed_count: campaignResult.failed
+    campaign_id: campaignResult.campaignId
   };
   fs.mkdirSync(path.dirname(AUDIT_LOG_PATH), { recursive: true });
   fs.appendFileSync(AUDIT_LOG_PATH, JSON.stringify(auditEntry) + '\n');

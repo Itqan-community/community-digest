@@ -34,13 +34,14 @@ jobs:
             npm ci --omit=dev
             python3 -c "
 import re, os
-key = os.environ['MAILERLITE_API_KEY']
-with open('.env', 'r') as f: content = f.read()
-if 'MAILERLITE_API_KEY=' in content:
-    content = re.sub(r'^MAILERLITE_API_KEY=.*$', 'MAILERLITE_API_KEY=' + key, content, flags=re.MULTILINE)
-else:
-    content += '\nMAILERLITE_API_KEY=' + key
-with open('.env', 'w') as f: f.write(content)
+content = open('.env').read()
+def upsert(content, key, val):
+    if key + '=' in content:
+        return re.sub(r'^' + key + r'=.*$', key + '=' + val, content, flags=re.MULTILINE)
+    return content + '\n' + key + '=' + val
+content = upsert(content, 'MAILERLITE_API_KEY', os.environ['MAILERLITE_API_KEY'])
+content = upsert(content, 'FROM_EMAIL', 'digest@newsletter.itqan.dev')
+open('.env', 'w').write(content)
 "
             pm2 restart digest-server --update-env
             sleep 3

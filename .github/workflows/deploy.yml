@@ -32,11 +32,16 @@ jobs:
             git fetch origin
             git reset --hard origin/main
             npm ci --omit=dev
-            if grep -q "^MAILERLITE_API_KEY=" .env; then
-              sed -i "s|^MAILERLITE_API_KEY=.*|MAILERLITE_API_KEY=$MAILERLITE_API_KEY|" .env
-            else
-              echo "MAILERLITE_API_KEY=$MAILERLITE_API_KEY" >> .env
-            fi
+            python3 -c "
+import re, os
+key = os.environ['MAILERLITE_API_KEY']
+with open('.env', 'r') as f: content = f.read()
+if 'MAILERLITE_API_KEY=' in content:
+    content = re.sub(r'^MAILERLITE_API_KEY=.*$', 'MAILERLITE_API_KEY=' + key, content, flags=re.MULTILINE)
+else:
+    content += '\nMAILERLITE_API_KEY=' + key
+with open('.env', 'w') as f: f.write(content)
+"
             pm2 restart digest-server --update-env
             sleep 3
             curl -sf http://localhost:3000/health || (pm2 logs digest-server --lines 20 && exit 1)

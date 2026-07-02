@@ -1,78 +1,54 @@
-import { Resend } from 'resend';
-import fs from 'fs/promises';
 import 'dotenv/config';
-import { fetchSubscribedRecipients, ensureSubscriberExists } from '../db/subscribers.js';
-import { recordSend } from '../db/sends.js';
+import { fetchSubscribedRecipients } from '../db/subscribers.js';
 
-const SENDER_ADDRESS = 'Community Digest <digest@newsletter.itqan.dev>';
+const MS_API = 'https://api.mailersend.com/v1';
+const SEND_CONCURRENCY = 20;
 
-/**
- * Send the digest to each recipient individually so each gets a unique unsubscribe URL.
- *
- * @param {Array<{email: string, token: string}>} recipients
- * @param {(token: string) => string} htmlFn - called per-recipient to inject unsubscribe URL
- * @param {string} subject
- * @returns {{sent: number, failed: number}}
- */
-export async function sendDigestEmail(recipients, htmlFn, subject) {
-  const resend = new Resend(process.env.RESEND_API_KEY);
+export async function sendCampaign(templateHtml, subject) {
+  const baseUrl = process.env.UNSUBSCRIBE_BASE_URL || 'https://digest.itqan.dev';
+  const recipients = await fetchSubscribedRecipients();
+
+  console.log(`  Sending to ${recipients.length} recipient(s)...`);
 
   let sent = 0;
-  let failed = 0;
+  const failures = [];
 
-  const runDate = new Date().toISOString().slice(0, 10);
-
-  for (const recipient of recipients) {
-    try {
-      const html = htmlFn(recipient.token);
-      const { id: resendId } = await resend.emails.send({
-        from: SENDER_ADDRESS,
-        to: [recipient.email],
-        subject,
-        html
+  for (let i = 0; i < recipients.length; i += SEND_CONCURRENCY) {
+    const batch = recipients.slice(i, i + SEND_CONCURRENCY);
+    await Promise.all(batch.map(async ({ email, token }) => {
+      const html = templateHtml.replace(
+        /__UNSUBSCRIBE_PLACEHOLDER__/g,
+        `${baseUrl}/unsubscribe?token=${token}`
+      );
+      const res = await fetch(`${MS_API}/email`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.MAILERSEND_API_KEY}`
+        },
+        body: JSON.stringify({
+          from: { email: process.env.FROM_EMAIL || 'tools@itqan.dev', name: 'مجتمع إتقان' },
+          to: [{ email }],
+          subject,
+          html
+        })
       });
-      await recordSend(recipient.email, resendId, runDate);
-      sent++;
-    } catch (error) {
-      failed++;
-      console.error(`Failed to send to ${recipient.email}:`, error.message);
-    }
-  }
-
-  return { sent, failed };
-}
-
-/**
- * Fetch the recipient list.
- * - SEND_MODE=test: returns only TEST_RECIPIENT_EMAIL (via db/subscribers.js short-circuit).
- * - SEND_MODE=prod: bootstraps digest_subscribers from Flarum users, returns subscribed rows.
- * - CSV supplement (RECIPIENTS_CSV): only used in prod mode; each email is tokenized first.
- */
-export async function getRecipients() {
-  const recipients = await fetchSubscribedRecipients();
-  const emailSet = new Set(recipients.map(r => r.email));
-
-  // Supplemental CSV — ignored in test mode (fetchSubscribedRecipients short-circuits to test email)
-  if (process.env.SEND_MODE === 'prod' && process.env.RECIPIENTS_CSV) {
-    try {
-      const csv = await fs.readFile(process.env.RECIPIENTS_CSV, 'utf-8');
-      const lines = csv.split('\n')
-        .map(l => l.replace(/\r/g, '').trim())
-        .filter(l => l && !l.startsWith('#'));
-
-      for (const email of lines) {
-        if (emailSet.has(email)) continue;
-        const row = await ensureSubscriberExists(email);
-        if (row && row.subscribed) {
-          recipients.push({ email: row.email, token: row.token });
-          emailSet.add(email);
-        }
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        failures.push({ email, error: JSON.stringify(err) });
+      } else {
+        sent++;
       }
-      console.log(`Loaded ${lines.length} addresses from CSV`);
-    } catch (error) {
-      console.error('Failed to read recipients CSV:', error.message);
-    }
+    }));
   }
 
-  return recipients;
+  if (sent === 0 && failures.length > 0) {
+    throw new Error(`All sends failed. First error: ${failures[0].error}`);
+  }
+
+  if (failures.length > 0) {
+    console.warn(`  Warning: ${failures.length} send(s) failed`);
+  }
+
+  return { sent, failed: failures.length, recipientCount: recipients.length };
 }

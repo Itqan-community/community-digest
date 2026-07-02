@@ -26,16 +26,16 @@ jobs:
           host: 134.122.104.215
           username: root
           key: ${{ secrets.DROPLET_SSH_KEY }}
-          envs: RESEND_WEBHOOK_SECRET
+          envs: MAILERSEND_API_KEY
           script: |
             cd /opt/community-digest
             git fetch origin
             git reset --hard origin/main
             npm ci --omit=dev
-            if grep -q "^RESEND_WEBHOOK_SECRET=" .env; then
-              sed -i "s|^RESEND_WEBHOOK_SECRET=.*|RESEND_WEBHOOK_SECRET=$RESEND_WEBHOOK_SECRET|" .env
+            if grep -q "^MAILERSEND_API_KEY=" .env; then
+              sed -i "s|^MAILERSEND_API_KEY=.*|MAILERSEND_API_KEY=$MAILERSEND_API_KEY|" .env
             else
-              echo "RESEND_WEBHOOK_SECRET=$RESEND_WEBHOOK_SECRET" >> .env
+              echo "MAILERSEND_API_KEY=$MAILERSEND_API_KEY" >> .env
             fi
             pm2 restart digest-server --update-env
             sleep 3

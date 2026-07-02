@@ -1,115 +1,99 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { sendDigestEmail } from '../../email/sender.js';
+import { sendCampaign } from '../../email/sender.js';
 
 const hoisted = vi.hoisted(() => ({
-  mockSend: vi.fn(),
-  mockRecordSend: vi.fn()
+  mockFetch: vi.fn(),
+  mockFetchRecipients: vi.fn()
 }));
 
-vi.mock('resend', () => ({
-  Resend: class {
-    constructor() { this.emails = { send: hoisted.mockSend }; }
-  }
-}));
+vi.stubGlobal('fetch', hoisted.mockFetch);
 
 vi.mock('../../db/subscribers.js', () => ({
-  fetchSubscribedRecipients: vi.fn(),
+  fetchSubscribedRecipients: hoisted.mockFetchRecipients,
   ensureSubscriberExists: vi.fn()
 }));
 
-vi.mock('../../db/sends.js', () => ({
-  recordSend: hoisted.mockRecordSend
-}));
+const { mockFetch, mockFetchRecipients } = hoisted;
 
-const { mockSend, mockRecordSend } = hoisted;
+function msOk() {
+  return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });
+}
 
-describe('sendDigestEmail', () => {
+function msError(body) {
+  return Promise.resolve({ ok: false, json: () => Promise.resolve(body) });
+}
+
+describe('sendCampaign', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.stubEnv('RESEND_API_KEY', 're_test');
+    vi.stubEnv('MAILERSEND_API_KEY', 'ms-test-key');
     vi.stubEnv('SEND_MODE', 'test');
-    mockRecordSend.mockResolvedValue(1);
+    vi.stubEnv('UNSUBSCRIBE_BASE_URL', 'https://digest.itqan.dev');
+
+    mockFetchRecipients.mockResolvedValue([
+      { email: 'bakasa@gmail.com', token: 'tok-abc' }
+    ]);
+
+    mockFetch.mockResolvedValue(msOk());
   });
 
   afterEach(() => {
     vi.unstubAllEnvs();
   });
 
-  it('sendDigestEmail_sendsIndividuallyPerRecipient', async () => {
-    mockSend.mockResolvedValue({ id: 'msg-1' });
+  it('sendCampaign_postsToMailerSendPerRecipient', async () => {
+    await sendCampaign('<html>test</html>', 'Subject');
 
-    const recipients = [
-      { email: 'a@test.com', token: 'tok-a' },
-      { email: 'b@test.com', token: 'tok-b' },
-      { email: 'c@test.com', token: 'tok-c' }
-    ];
-    const htmlFn = (token) => `<html>${token}</html>`;
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    const [url, opts] = mockFetch.mock.calls[0];
+    expect(url).toBe('https://api.mailersend.com/v1/email');
+    expect(opts.method).toBe('POST');
+    const body = JSON.parse(opts.body);
+    expect(body.to[0].email).toBe('bakasa@gmail.com');
+    expect(body.subject).toBe('Subject');
+  });
 
-    const result = await sendDigestEmail(recipients, htmlFn, 'Subject');
+  it('sendCampaign_usesBearerToken', async () => {
+    await sendCampaign('<html>test</html>', 'Subject');
 
-    // N recipients → N individual send calls
-    expect(mockSend).toHaveBeenCalledTimes(3);
-    // Each call has exactly 1 recipient in `to`
-    for (const call of mockSend.mock.calls) {
-      expect(call[0].to).toHaveLength(1);
-    }
-    expect(result.sent).toBe(3);
+    const [, opts] = mockFetch.mock.calls[0];
+    expect(opts.headers['Authorization']).toBe('Bearer ms-test-key');
+  });
+
+  it('sendCampaign_replacesUnsubscribePlaceholder', async () => {
+    await sendCampaign('<a href="__UNSUBSCRIBE_PLACEHOLDER__">unsub</a>', 'Subject');
+
+    const [, opts] = mockFetch.mock.calls[0];
+    const body = JSON.parse(opts.body);
+    expect(body.html).toContain('https://digest.itqan.dev/unsubscribe?token=tok-abc');
+    expect(body.html).not.toContain('__UNSUBSCRIBE_PLACEHOLDER__');
+  });
+
+  it('sendCampaign_returnsCountAndSent', async () => {
+    const result = await sendCampaign('<html>test</html>', 'Subject');
+
+    expect(result.sent).toBe(1);
+    expect(result.recipientCount).toBe(1);
     expect(result.failed).toBe(0);
   });
 
-  it('sendDigestEmail_injectsPerRecipientToken', async () => {
-    mockSend.mockResolvedValue({ id: 'msg-1' });
+  it('sendCampaign_throwsWhenAllFail', async () => {
+    mockFetch.mockResolvedValue(msError({ message: 'Unauthorized', status: 401 }));
 
-    const recipients = [
-      { email: 'a@test.com', token: 'TOKEN_A' },
-      { email: 'b@test.com', token: 'TOKEN_B' }
-    ];
-    const htmlFn = (token) => `<a href="__UNSUBSCRIBE_PLACEHOLDER__">x</a>`.replace(/__UNSUBSCRIBE_PLACEHOLDER__/g, `https://digest.itqan.dev/unsubscribe?token=${token}`);
-
-    await sendDigestEmail(recipients, htmlFn, 'Subject');
-
-    const calls = mockSend.mock.calls;
-    expect(calls[0][0].html).toContain('TOKEN_A');
-    expect(calls[1][0].html).toContain('TOKEN_B');
-    // Ensure tokens don't cross
-    expect(calls[0][0].html).not.toContain('TOKEN_B');
-    expect(calls[1][0].html).not.toContain('TOKEN_A');
+    await expect(sendCampaign('<html>test</html>', 'Subject')).rejects.toThrow('All sends failed');
   });
 
-  it('sendDigestEmail_recordsSendIdPerRecipient', async () => {
-    mockSend
-      .mockResolvedValueOnce({ id: 'msg-1' })
-      .mockResolvedValueOnce({ id: 'msg-2' });
-
-    const recipients = [
-      { email: 'a@test.com', token: 'tok-a' },
-      { email: 'b@test.com', token: 'tok-b' }
-    ];
-
-    await sendDigestEmail(recipients, (t) => `<html>${t}</html>`, 'Subject');
-
-    expect(mockRecordSend).toHaveBeenCalledTimes(2);
-    expect(mockRecordSend).toHaveBeenCalledWith('a@test.com', 'msg-1', expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/));
-    expect(mockRecordSend).toHaveBeenCalledWith('b@test.com', 'msg-2', expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/));
-  });
-
-  it('sendDigestEmail_oneFailureDoesNotAbortRest', async () => {
-    mockSend
-      .mockResolvedValueOnce({ id: 'msg-1' })
-      .mockRejectedValueOnce(new Error('send failed'))
-      .mockResolvedValueOnce({ id: 'msg-3' });
-
-    const recipients = [
+  it('sendCampaign_sendsMultipleRecipientsInBatches', async () => {
+    mockFetchRecipients.mockResolvedValue([
       { email: 'a@test.com', token: 'tok-a' },
       { email: 'b@test.com', token: 'tok-b' },
       { email: 'c@test.com', token: 'tok-c' }
-    ];
-    const htmlFn = (token) => `<html>${token}</html>`;
+    ]);
 
-    const result = await sendDigestEmail(recipients, htmlFn, 'Subject');
+    const result = await sendCampaign('<html>test</html>', 'Subject');
 
-    expect(mockSend).toHaveBeenCalledTimes(3);
-    expect(result.sent).toBe(2);
-    expect(result.failed).toBe(1);
+    expect(mockFetch).toHaveBeenCalledTimes(3);
+    expect(result.sent).toBe(3);
+    expect(result.recipientCount).toBe(3);
   });
 });
